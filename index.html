@@ -55,12 +55,12 @@
   ::selection{background:var(--accent-soft);color:var(--accent);}
 
   /* Shared tactile interaction: gentle press feedback everywhere */
-  .book-card,.img-card,.result-row,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
+  .book-card,.img-card,.article-card,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
   .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
   .tag-manage-btn,.add-card{
     transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
   }
-  .book-card:active,.img-card:active,.result-row:active,.chip:active,.tab-btn:active,
+  .book-card:active,.img-card:active,.article-card:active,.chip:active,.tab-btn:active,
   .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
   .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active{
     transform:scale(.96);
@@ -167,16 +167,13 @@
   .img-card-title{color:#fff;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .img-count{position:absolute;top:9px;right:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;padding:2px 8px;border-radius:var(--radius-pill);backdrop-filter:blur(2px);}
 
-  /* Result list (articles) */
-  .result-list{display:flex;flex-direction:column;gap:11px;margin-top:10px;}
-  .result-row{display:flex;gap:13px;background:var(--card);border-radius:var(--radius-card);padding:14px;box-shadow:var(--shadow);align-items:flex-start;}
-  .result-thumb{width:46px;height:46px;border-radius:12px;overflow:hidden;flex:0 0 auto;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;font-size:19px;}
-  .result-thumb img{width:100%;height:100%;object-fit:cover;}
-  .result-thumb-text{background:var(--accent-soft);color:var(--accent);}
-  .result-info{flex:1;min-width:0;}
-  .result-title{font-family:'Noto Serif TC',serif;font-weight:600;font-size:15px;color:var(--ink);line-height:1.4;}
-  .result-excerpt{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-  .result-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center;}
+  /* Article overview grid */
+  .article-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+  .article-card{background:var(--card);border-radius:var(--radius-sm);padding:13px 11px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:120px;}
+  .article-card-title{font-family:'Noto Serif TC',serif;font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.42;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+  .article-card-excerpt{font-size:10.5px;color:var(--ink-soft);margin-top:6px;line-height:1.55;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;flex:1;}
+  .article-card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+  .article-card-meta .tag{font-size:9px;padding:2px 7px;}
 
   /* Badges */
   .badge{font-size:11.5px;padding:3px 9px;border-radius:var(--radius-pill);display:inline-block;}
@@ -905,14 +902,11 @@ function waterfallHTML(folder, list){
     </div>`).join('')}</div>`;
 }
 function articleListHTML(folder, list){
-  return `<div class="result-list">${list.map(m=>`
-    <div class="result-row" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
-      <div class="result-thumb result-thumb-text">📄</div>
-      <div class="result-info">
-        <div class="result-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||'未命名文章')}</div>
-        <div class="result-excerpt">${esc(excerptOf(m))}</div>
-        <div class="result-meta">${tagsHTML(m.tags)}</div>
-      </div>
+  return `<div class="article-grid">${list.map(m=>`
+    <div class="article-card" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
+      <div class="article-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||'未命名文章')}</div>
+      <div class="article-card-excerpt">${esc(excerptOf(m))}</div>
+      ${m.tags && m.tags.length ? `<div class="article-card-meta">${tagsHTML(m.tags)}</div>` : ''}
     </div>`).join('')}</div>`;
 }
 function tagToolsRowHTML(folder){
