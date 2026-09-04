@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>藏書閣 · 私人收藏</title>
+<meta name="theme-color" content="#F1EADC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F1EADC;
+    --bg-deep:#E4D6BC;
+    --card:#FBF7ED;
+    --ink:#241A10;
+    --ink-soft:#6B5D46;
+    --ink-faint:#A0937A;
+    --line:#E1D3B4;
+    --accent:#7A3244;
+    --accent-soft:#F1E1DC;
+    --moss:#4C5A40;
+    --moss-soft:#E4E9D6;
+    --gold:#8C6A1E;
+    --gold-soft:#F5E7BE;
+    --danger:#9B4237;
+    --radius-xs:10px;
+    --radius-sm:14px;
+    --radius-card:18px;
+    --radius-lg:24px;
+    --radius-pill:999px;
+    --shadow:0 1px 2px rgba(36,26,16,.06), 0 8px 22px -9px rgba(36,26,16,.28);
+    --shadow-lg:0 20px 44px -16px rgba(36,26,16,.4), 0 4px 12px rgba(36,26,16,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    background:
+      radial-gradient(ellipse 700px 380px at 10% -6%, rgba(255,255,255,.35), transparent 60%),
+      radial-gradient(ellipse 700px 420px at 100% 0%, rgba(0,0,0,.03), transparent 55%),
+      var(--bg-deep);
+    color:var(--ink);
+    font-family:'Noto Sans TC',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color .2s ease;
+  }
+  body.modal-open{overflow:hidden;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+  ::selection{background:var(--accent-soft);color:var(--accent);}
+
+  /* Shared tactile interaction: gentle press feedback everywhere */
+  .book-card,.img-card,.result-row,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
+  .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
+  .tag-manage-btn,.add-card{
+    transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .book-card:active,.img-card:active,.result-row:active,.chip:active,.tab-btn:active,
+  .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
+  .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active{
+    transform:scale(.96);
+  }
+
+  .app-shell{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:40px;box-shadow:0 0 60px rgba(0,0,0,.08);}
+  .page-content{padding:4px 18px calc(104px + env(safe-area-inset-bottom));}
+
+  /* Topbar */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;padding:16px 14px 12px;gap:8px;
+    position:sticky;top:0;z-index:12;background:var(--bg);
+    box-shadow:0 1px 0 var(--line);
+  }
+  .home-topbar{padding:22px 18px 14px;position:static;box-shadow:none;background:transparent;}
+  .app-title{font-family:'Noto Serif TC',serif;font-weight:700;font-size:28px;color:var(--ink);letter-spacing:.3px;position:relative;display:inline-block;}
+  .app-title::after{content:'';display:block;width:30px;height:3px;background:var(--accent);border-radius:2px;margin-top:7px;}
+  .app-subtitle{font-size:12.5px;color:var(--ink-soft);margin-top:9px;}
+  .topbar-actions{display:flex;gap:8px;}
+  .icon-btn{width:40px;height:40px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);flex:0 0 auto;}
+  .topbar-mini{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--ink-soft);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .folder-title{display:flex;align-items:center;gap:7px;flex:1;justify-content:center;padding:7px 10px;border-radius:var(--radius-pill);}
+  .folder-title-icon{font-size:18px;}
+  .folder-title-text{font-family:'Noto Serif TC',serif;font-weight:600;font-size:17px;}
+  .folder-title-edit{font-size:11px;opacity:.5;}
+
+  /* Home */
+  .folder-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 12px;margin-top:10px;}
+  .drag-hint{font-size:11.5px;color:var(--ink-faint);text-align:center;margin:2px 0 12px;}
+  .book-card{
+    border-radius:8px 10px 10px 8px;padding:12px 10px;aspect-ratio:3/4.4;
+    display:flex;flex-direction:column;justify-content:flex-end;
+    box-shadow:var(--shadow), inset -3px 0 7px -3px rgba(10,7,4,.3), inset 2px 0 0 rgba(255,255,255,.15);
+    position:relative;overflow:hidden;
+    border:1px solid rgba(255,255,255,.4);
+    background-size:cover;background-position:center;
+  }
+  .book-card.dragging{opacity:.5;}
+  .book-card-scrim{position:absolute;inset:0;background:linear-gradient(to top, rgba(10,7,4,.88), rgba(10,7,4,.25) 60%, rgba(10,7,4,.05));}
+  .book-card-icon{
+    width:32px;height:32px;border-radius:10px;position:absolute;top:10px;left:10px;z-index:1;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+    background:rgba(255,255,255,.5);box-shadow:0 1px 3px rgba(36,26,16,.1);
+  }
+  .book-card.has-cover .book-card-icon{background:rgba(255,255,255,.28);backdrop-filter:blur(3px);}
+  .book-card-text{position:relative;z-index:1;margin-top:26px;}
+  .book-card-name{font-family:'Noto Serif TC',serif;font-weight:600;font-size:13.5px;color:var(--ink);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .book-card.has-cover .book-card-name{color:#fff;}
+  .book-card-desc{font-size:10px;margin-top:3px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .book-card.has-cover .book-card-desc{color:rgba(255,255,255,.82);}
+  .book-card-count{font-size:10px;color:var(--ink-soft);margin-top:4px;}
+  .book-card.has-cover .book-card-count{color:rgba(255,255,255,.7);}
+  .add-card{background:transparent !important;border:1.5px dashed var(--line);align-items:center;justify-content:center;text-align:center;box-shadow:none;}
+  .add-card-icon{font-size:20px;color:var(--ink-faint);width:auto;height:auto;background:none;box-shadow:none;position:static;}
+  .add-card-label{font-size:11px;color:var(--ink-soft);margin-top:6px;text-align:center;padding:0 4px;}
+  .cover-preview{position:relative;border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow);height:120px;}
+  .cover-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* Empty state */
+  .empty-state{text-align:center;padding:56px 24px 20px;}
+  .empty-icon{
+    width:64px;height:64px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;
+  }
+  .empty-title{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:600;color:var(--ink);}
+  .empty-desc{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.7;max-width:280px;margin-left:auto;margin-right:auto;}
+  .empty-cta{text-align:center;margin-top:16px;}
+
+  /* Tabs — segmented control */
+  .tab-switch{display:flex;gap:4px;padding:6px 18px 2px;margin-top:2px;}
+  .tab-switch::before{content:none;}
+  .tab-btn{
+    flex:1;border:none;background:var(--bg-deep);color:var(--ink-soft);
+    padding:10px 4px;border-radius:var(--radius-pill);font-size:13.5px;font-weight:600;
+  }
+  .tab-btn.active{background:var(--card);color:var(--accent);box-shadow:var(--shadow);}
+  .tab-count{font-size:11px;opacity:.75;margin-left:2px;}
+
+  /* Sort row */
+  .sort-row{display:flex;align-items:center;gap:8px;padding:14px 18px 0;}
+  .tag-tools-label{font-size:12.5px;color:var(--ink-soft);flex:1;}
+  .sort-chip-group{display:flex;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none;}
+  .sort-chip-group::-webkit-scrollbar{display:none;}
+  .sort-chip{border:1px solid var(--line);background:var(--card);color:var(--ink-soft);padding:7px 13px;border-radius:var(--radius-pill);font-size:12.5px;white-space:nowrap;flex:0 0 auto;}
+  .sort-chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .tag-manage-btn{flex:0 0 auto;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);border-radius:var(--radius-pill);padding:7px 12px;font-size:12px;}
+
+  /* Filter bar */
+  .filter-bar{padding:10px 18px 4px;}
+  .chip-scroll{display:flex;gap:7px;overflow-x:auto;padding:6px 2px 6px;scrollbar-width:none;}
+  .chip-scroll::-webkit-scrollbar{display:none;}
+  .chip{display:inline-flex;align-items:center;gap:3px;background:var(--card);color:var(--ink-soft);border:1px solid var(--line);padding:7px 13px;border-radius:var(--radius-pill);font-size:12.5px;white-space:nowrap;flex:0 0 auto;}
+  .filter-chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .chip-removable{background:var(--accent-soft);color:var(--accent);border:none;padding:6px 7px 6px 13px;gap:6px;}
+  .chip-removable button{border:none;background:none;color:var(--accent);font-size:15px;line-height:1;padding:0 2px;}
+  .chip-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+  .tag{font-size:12px;color:var(--moss);background:var(--moss-soft);padding:4px 10px;border-radius:var(--radius-pill);}
+
+  /* Waterfall */
+  .waterfall{column-count:2;column-gap:11px;margin-top:10px;}
+  .img-card{break-inside:avoid;margin-bottom:11px;border-radius:var(--radius-card);overflow:hidden;position:relative;box-shadow:var(--shadow);background:var(--card);}
+  .img-card img{width:100%;display:block;}
+  .img-card-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(to top,rgba(15,10,5,.78),rgba(15,10,5,0));}
+  .img-card-title{color:#fff;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .img-count{position:absolute;top:9px;right:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;padding:2px 8px;border-radius:var(--radius-pill);backdrop-filter:blur(2px);}
+
+  /* Result list (articles) */
+  .result-list{display:flex;flex-direction:column;gap:11px;margin-top:10px;}
+  .result-row{display:flex;gap:13px;background:var(--card);border-radius:var(--radius-card);padding:14px;box-shadow:var(--shadow);align-items:flex-start;}
+  .result-thumb{width:46px;height:46px;border-radius:12px;overflow:hidden;flex:0 0 auto;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;font-size:19px;}
+  .result-thumb img{width:100%;height:100%;object-fit:cover;}
+  .result-thumb-text{background:var(--accent-soft);color:var(--accent);}
+  .result-info{flex:1;min-width:0;}
+  .result-title{font-family:'Noto Serif TC',serif;font-weight:600;font-size:15px;color:var(--ink);line-height:1.4;}
+  .result-excerpt{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .result-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center;}
+
+  /* Badges */
+  .badge{font-size:11.5px;padding:3px 9px;border-radius:var(--radius-pill);display:inline-block;}
+  .badge.fav-badge{background:var(--gold-soft);color:var(--gold);}
+  .fav-star{color:var(--gold);margin-right:4px;}
+
+  /* Bottom nav — floating pill */
+  .bottom-nav{
+    position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));max-width:452px;margin:0 auto;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);display:flex;
+    padding:8px 8px;box-shadow:var(--shadow-lg);z-index:30;
+  }
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--ink-faint);padding:7px 2px;border-radius:14px;}
+  .nav-item.active{color:var(--accent);background:var(--accent-soft);}
+  .nav-icon{font-size:19px;font-weight:700;line-height:1;}
+  .nav-label{font-size:10px;font-weight:600;}
+
+  /* FAB */
+  .fab{
+    position:fixed;right:20px;bottom:calc(94px + env(safe-area-inset-bottom));
+    width:58px;height:58px;border-radius:50%;
+    background:var(--accent);
+    background:linear-gradient(155deg, var(--accent), color-mix(in srgb, var(--accent) 78%, black));
+    color:#fff;border:none;
+    font-size:26px;box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.25);
+    z-index:20;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* Reading / gallery */
+  .reading-page,.gallery-page{padding:10px var(--reading-pad-x, 22px) 84px;}
+  .reading-title{font-family:'Noto Serif TC',serif;font-size:24px;font-weight:700;line-height:1.45;margin:8px 0 10px;}
+  .reading-meta{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .reading-date{font-size:12px;color:var(--ink-faint);}
+  .reading-content{font-family:var(--reading-font-family, 'Noto Serif TC',serif);font-size:var(--reading-font-size, 17px);line-height:var(--reading-line-height, 2);color:var(--ink);white-space:pre-wrap;margin-top:18px;padding-bottom:20px;letter-spacing:.1px;}
+  .reading-embed-img{display:block;width:100%;border-radius:var(--radius-card);margin:18px 0;box-shadow:var(--shadow);}
+  .gallery-stack{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
+  .gallery-img-wrap{border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow);}
+  .gallery-img{width:100%;display:block;}
+  .gallery-img.fit-original{width:auto;max-width:100%;margin:0 auto;}
+
+  /* Editor page (articles) */
+  .editor-page{padding:10px 20px 112px;}
+  .editor-title-input{width:100%;border:none;border-bottom:2px solid var(--line);background:transparent;font-family:'Noto Serif TC',serif;font-size:23px;font-weight:700;padding:10px 2px 12px;outline:none;color:var(--ink);}
+  .editor-title-input:focus{border-color:var(--accent);}
+  .editor-textarea{width:100%;min-height:36vh;border:1px solid var(--line);background:var(--card);border-radius:var(--radius-sm);padding:16px;font-family:'Noto Serif TC',serif;font-size:16px;line-height:1.9;color:var(--ink);outline:none;resize:vertical;margin-top:16px;box-shadow:var(--shadow);}
+  .editor-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .editor-wordcount{font-size:11.5px;color:var(--ink-faint);margin-top:6px;text-align:right;}
+  .editor-toolbar-toggle{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-pill);padding:9px 15px;font-size:12.5px;color:var(--ink-soft);flex:1;text-align:center;}
+  .editor-toolbar-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .embed-strip{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 2px;margin-top:10px;scrollbar-width:none;}
+  .embed-strip::-webkit-scrollbar{display:none;}
+  .embed-thumb{width:64px;height:64px;border-radius:var(--radius-xs);overflow:hidden;position:relative;background:var(--bg-deep);flex:0 0 auto;box-shadow:var(--shadow);}
+  .embed-thumb img{width:100%;height:100%;object-fit:cover;}
+  .embed-thumb-remove{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(15,10,5,.6);color:#fff;font-size:11px;line-height:1;}
+  .text-tools-panel{margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:none;box-shadow:var(--shadow);}
+  .text-tools-panel.open{display:block;}
+  .text-tools-row{margin-bottom:9px;}
+  .text-tools-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .text-tools-actions .btn{padding:8px 13px;font-size:12.5px;width:auto;}
+  .editor-bottom-bar{
+    position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
+    background:var(--card);border-top:1px solid var(--line);
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));z-index:15;
+    box-shadow:0 -6px 20px rgba(36,26,16,.08);
+  }
+
+  /* Modal / sheet */
+  .backdrop{position:fixed;inset:0;background:rgba(18,12,6,.5);z-index:1000;animation:fadeIn .18s ease-out;backdrop-filter:blur(1.5px);}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    padding:14px 22px calc(22px + env(safe-area-inset-bottom));
+    max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);
+    animation:sheetUp .24s cubic-bezier(.2,.8,.2,1);z-index:1001;
+  }
+  .sheet-grabber{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px;}
+  @keyframes sheetUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+  .sheet-close{position:absolute;top:16px;right:18px;width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-deep);color:var(--ink-soft);font-size:16px;}
+  .sheet-title{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin-bottom:16px;padding-right:30px;}
+  .modal-loading{padding:34px 0;text-align:center;color:var(--ink-soft);font-size:14px;}
+  .field-label{display:block;font-size:12.5px;color:var(--ink-soft);margin:16px 0 7px;font-weight:600;}
+  .text-input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:var(--radius-xs);padding:11px 13px;font-size:14.5px;color:var(--ink);outline:none;}
+  .text-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .tag-row{display:flex;gap:8px;}
+  .tag-row .tag-input{flex:1;}
+  .btn{border:none;border-radius:var(--radius-pill);padding:12px 18px;font-size:14px;font-weight:600;}
+  .btn-primary{background:var(--accent);color:#fff;width:100%;box-shadow:0 6px 16px -4px rgba(122,50,68,.4);}
+  .btn-ghost-sm{background:var(--bg-deep);color:var(--ink);padding:10px 15px;}
+  .btn-danger-outline{background:none;border:1px solid var(--danger);color:var(--danger);width:100%;margin-bottom:10px;}
+  .sheet-actions{margin-top:22px;display:flex;flex-direction:column;gap:10px;}
+  .sheet-actions.row{flex-direction:row;}
+  .sheet-actions.row .btn{flex:1;}
+  .icon-grid{display:flex;flex-wrap:wrap;gap:9px;}
+  .icon-opt{width:44px;height:44px;border-radius:var(--radius-xs);border:1.5px solid var(--line);background:var(--bg);font-size:19px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .icon-opt.active{border-color:var(--accent);background:var(--accent-soft);}
+  .icon-img{width:1em;height:1em;object-fit:cover;border-radius:5px;vertical-align:-0.15em;display:inline-block;}
+  .icon-opt img{width:100%;height:100%;object-fit:cover;border-radius:0;}
+  .icon-opt-upload{font-size:17px;color:var(--ink-soft);}
+  .upload-grid{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px;}
+  .upload-thumb{width:78px;height:78px;border-radius:var(--radius-sm);overflow:hidden;position:relative;background:var(--bg-deep);box-shadow:var(--shadow);}
+  .upload-thumb img{width:100%;height:100%;object-fit:cover;}
+  .upload-loading{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);text-align:center;padding:4px;}
+  .upload-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(15,10,5,.6);color:#fff;font-size:12px;line-height:1;}
+  .upload-btn{display:block;text-align:center;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:14px;font-size:13.5px;color:var(--ink-soft);}
+  .favorite-toggle{display:block;width:100%;text-align:center;border:1px solid var(--line);background:var(--bg);color:var(--ink-soft);padding:12px 16px;border-radius:var(--radius-pill);font-size:14px;}
+  .favorite-toggle.active{background:var(--gold-soft);color:var(--gold);border-color:var(--gold);}
+  .sheet-btn{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);padding:15px 4px;font-size:15px;color:var(--ink);}
+  .sheet-btn:first-of-type{border-top:none;}
+  .sheet-btn.danger{color:var(--danger);}
+  .random-card{text-align:center;padding:8px 0 4px;}
+  .random-thumb{width:100px;height:100px;border-radius:var(--radius-card);margin:0 auto 14px;overflow:hidden;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:var(--shadow);}
+  .random-thumb img{width:100%;height:100%;object-fit:cover;}
+  .random-folder{font-size:12px;color:var(--ink-faint);}
+  .random-title{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin-top:5px;}
+  .tag-manager-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);}
+  .tag-manager-row:first-of-type{border-top:none;}
+  .tag-manager-row input{flex:1;}
+  .tag-manager-clear{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-deep);color:var(--danger);font-size:14px;flex:0 0 auto;}
+
+  /* Lightbox */
+  .lightbox{position:fixed;inset:0;background:rgba(8,6,3,.96);z-index:2000;display:flex;align-items:center;justify-content:center;}
+  .lb-img{max-width:94vw;max-height:82vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+  .lb-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:18px;backdrop-filter:blur(4px);}
+  .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:20px;backdrop-filter:blur(4px);}
+  .lb-prev{left:12px;}
+  .lb-next{right:12px;}
+  .lb-count{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);color:#fff;font-size:12.5px;background:rgba(255,255,255,.15);padding:5px 13px;border-radius:var(--radius-pill);backdrop-filter:blur(4px);}
+
+  /* Settings */
+  .settings-page{padding-top:8px;}
+  .settings-card{background:var(--card);border-radius:var(--radius-card);padding:18px;box-shadow:var(--shadow);margin-bottom:16px;}
+  .muted-card{opacity:.85;}
+  .settings-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;}
+  .settings-row+.settings-row{border-top:1px solid var(--line);}
+  .settings-section-title{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin:6px 4px 9px;}
+  .settings-desc{font-size:13px;color:var(--ink-soft);line-height:1.75;margin:0 0 13px;}
+  .coming-soon-badge{display:inline-block;background:var(--bg-deep);color:var(--ink-soft);font-size:11.5px;padding:4px 11px;border-radius:var(--radius-pill);}
+  .theme-mode-row{display:flex;gap:8px;background:var(--bg-deep);padding:4px;border-radius:var(--radius-pill);}
+  .theme-mode-row .tab-btn{background:transparent;box-shadow:none;}
+  .theme-mode-row .tab-btn.active{background:var(--card);box-shadow:var(--shadow);}
+  .theme-swatch-grid{display:flex;gap:11px;flex-wrap:wrap;margin-top:4px;}
+  .theme-swatch{width:38px;height:38px;border-radius:50%;border:2px solid transparent;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);flex:0 0 auto;}
+  .theme-swatch.active{border-color:var(--ink);box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--ink);}
+  .icon-preview-row{display:flex;align-items:center;gap:13px;margin-bottom:14px;}
+  .icon-preview{width:54px;height:54px;border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow);flex:0 0 auto;}
+  .icon-preview img{width:100%;height:100%;display:block;}
+
+  /* Toast */
+  #toast{
+    position:fixed;left:50%;bottom:calc(94px + env(safe-area-inset-bottom));transform:translate(-50%,10px);
+    background:var(--ink);color:var(--bg);font-size:13px;padding:11px 20px;border-radius:var(--radius-pill);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:3000;max-width:80%;text-align:center;
+    box-shadow:var(--shadow-lg);
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0);}
+</style>
+</head>
+<body>
+<div class="app-shell" id="app"></div>
+<div id="bottom-nav-root"></div>
+<div id="overlay-root"></div>
+<script>
+/* ============================================================
+   資料架構說明（為未來雲端同步預留空間）
+   - 所有讀寫都透過 storageGetRaw / storageSetRaw / storageDeleteRaw
+     這幾個函式進行，未來若要換成雲端 API，只需要替換這幾個函式的
+     實作，其餘畫面與邏輯不需更動。
+   - folders：資料夾清單（輕量）
+   - meta_<folderId>：該資料夾內所有收藏的完整索引。文章的標題／
+     內文／標籤／狀態都直接存在這裡（一次寫入，避免內文與索引
+     分開儲存時，其中一次寫入失敗造成內文遺失）。
+   - item_<folderId>_<id>：僅圖片收藏使用，存放完整尺寸的圖片。
+   ============================================================ */
+
+let FOLDERS = [];
+const META_CACHE = {};
+let CURRENT_FILTER = { tags:[], favoriteOnly:false };
+let FOLDER_VIEW_CTX = null;
+let LAST_VIEWED_FOLDER_ID = null;
+let DRAG_FOLDER_ID = null;
+let UPLOAD_QUEUE = [];
+let TAG_DRAFT = [];
+let FAVORITE_DRAFT = false;
+let EMBEDDED_IMAGES_DRAFT = {};
+let FOLDER_ICON_DRAFT = null;
+let CUSTOM_ICON_PREVIEW = null;
+let COVER_DRAFT = null;
+let EDITING = null;
+let PROCESSING = false;
+let LIGHTBOX_IMAGES = [];
+let LIGHTBOX_IDX = 0;
+let APP_NAME = '藏書閣';
+let APP_ICON = '📚';
+let DEFERRED_INSTALL_PROMPT = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  DEFERRED_INSTALL_PROMPT = e;
+  if(parseHash()[0]==='theme') renderThemePage();
+});
+window.addEventListener('appinstalled', ()=>{
+  DEFERRED_INSTALL_PROMPT = null;
+  if(parseHash()[0]==='theme') renderThemePage();
+});
+let HOME_SORT_MODE = 'recent';
+let DEFAULT_LANDING = 'home';
+let READING_PREFS = { fontSize:'medium', lineHeight:'normal', font:'serif', width:'normal', imageFit:'fit' };
+
+const DEFAULT_ICONS = ['📚','📖','🖼️','🎨','🌙','⭐','🌸','🍀','🕯️','💌','🎬','🍬','🌊','🗂️','🔥','🧵'];
+const THEME_BASE = {
+  light: { '--bg':'#F1EADC','--bg-deep':'#E4D6BC','--card':'#FBF7ED','--ink':'#241A10','--ink-soft':'#6B5D46','--ink-faint':'#A0937A','--line':'#E1D3B4','--moss':'#4C5A40','--moss-soft':'#E4E9D6','--gold':'#8C6A1E','--gold-soft':'#F5E7BE','--danger':'#9B4237','--shadow':'0 1px 2px rgba(36,26,16,.06), 0 8px 22px -9px rgba(36,26,16,.28)','--shadow-lg':'0 20px 44px -16px rgba(36,26,16,.4), 0 4px 12px rgba(36,26,16,.14)' },
+  dark:  { '--bg':'#161210','--bg-deep':'#1E1814','--card':'#241D18','--ink':'#F3EADA','--ink-soft':'#C8B99C','--ink-faint':'#8C7C63','--line':'#3A2F26','--moss':'#9CC08A','--moss-soft':'#26301F','--gold':'#E0B860','--gold-soft':'#3A2E16','--danger':'#E28E80','--shadow':'0 1px 2px rgba(0,0,0,.35), 0 8px 22px -9px rgba(0,0,0,.55)','--shadow-lg':'0 20px 44px -16px rgba(0,0,0,.65), 0 4px 12px rgba(0,0,0,.35)' }
+};
+const PALETTES = [
+  { id:'burgundy', name:'胭脂', light:{'--accent':'#7A3244','--accent-soft':'#EADCD3'}, dark:{'--accent':'#E39BAD','--accent-soft':'#4A2530'} },
+  { id:'teal',     name:'松石', light:{'--accent':'#2F6F66','--accent-soft':'#DCEAE6'}, dark:{'--accent':'#7FD9C9','--accent-soft':'#1F4740'} },
+  { id:'indigo',   name:'靛藍', light:{'--accent':'#3B4C8C','--accent-soft':'#E1E4F2'}, dark:{'--accent':'#9DAEF0','--accent-soft':'#2A3563'} },
+  { id:'caramel',  name:'焦糖', light:{'--accent':'#A9631E','--accent-soft':'#F3E2CC'}, dark:{'--accent':'#E3A75E','--accent-soft':'#4A3218'} },
+  { id:'navy',     name:'藏青', light:{'--accent':'#24435F','--accent-soft':'#DDE6ED'}, dark:{'--accent':'#8FB6D9','--accent-soft':'#1B3145'} },
+  { id:'mauve',    name:'梅紫', light:{'--accent':'#6B3E66','--accent-soft':'#EBDDE9'}, dark:{'--accent':'#CB9BC4','--accent-soft':'#3D2739'} }
+];
+let THEME_STATE = { mode:'light', palette:0 };
+
+/* ---------- Utilities ---------- */
+function esc(s){
+  return (s===undefined||s===null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function uid(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function fmtDate(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
+}
+function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function favoriteBadgeHTML(fav){ return fav ? `<span class="badge fav-badge">★ 收藏</span>` : ''; }
+function tagsHTML(tags){ return (tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join(''); }
+function excerptOf(m){
+  let text = (m.content!==undefined? m.content : (m.excerpt||'')) || '';
+  text = text.replace(/\[\[img:[a-zA-Z0-9_]+\]\]/g, '📷');
+  return text.replace(/\s+/g,' ').trim().slice(0,60);
+}
+function isImageIcon(icon){ return typeof icon==='string' && icon.indexOf('data:image')===0; }
+function folderIconHTML(icon, cls){
+  cls = cls || '';
+  if(isImageIcon(icon)) return `<img src="${icon}" class="icon-img ${cls}"/>`;
+  return `<span class="icon-emoji ${cls}">${icon||''}</span>`;
+}
+function emptyStateHTML(title, desc){
+  return `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">${esc(title)}</div><div class="empty-desc">${esc(desc)}</div></div>`;
+}
+function toast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=> t.classList.remove('show'), 2000);
+}
+
+/* ---------- Storage layer ----------
+   Prefers window.storage (Claude's artifact-preview bridge). If that is
+   missing or fails — e.g. this file was saved/opened directly, or added
+   to a phone's home screen — it automatically falls back to the browser's
+   own IndexedDB, so data still actually saves. */
+const IDB_NAME = 'collection_app_db';
+const IDB_STORE = 'kv';
+let IDB = null;
+let USE_BRIDGE = false;
+function openIDB(){
+  return new Promise((resolve, reject)=>{
+    if(!('indexedDB' in window)){ reject(new Error('no indexedDB')); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+function idbGet(key){
+  return new Promise((resolve, reject)=>{
+    const tx = IDB.transaction(IDB_STORE,'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result===undefined ? null : req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+function idbSet(key, value){
+  return new Promise((resolve, reject)=>{
+    const tx = IDB.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+function idbDelete(key){
+  return new Promise((resolve, reject)=>{
+    const tx = IDB.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+async function initStorage(){
+  try{ IDB = await openIDB(); }catch(e){ IDB = null; }
+  try{
+    if(window.storage && typeof window.storage.set==='function'){
+      const r = await window.storage.set('__probe__','1', false);
+      if(r){ USE_BRIDGE = true; }
+    }
+  }catch(e){ /* fall through */ }
+}
+
+/* ---------- Optional cloud sync (Firebase Firestore) ----------
+   Off by default. When the person connects a Firebase project + sync
+   key (Theme page → 雲端同步), Firestore becomes the storage backend
+   instead of the bridge/IndexedDB, so the same data shows up on any
+   device using the same project + sync key. Firestore's own offline
+   cache keeps things working without a connection, syncing again once
+   back online. */
+let FIREBASE_CONFIG = null;
+let SYNC_KEY = null;
+let FIRESTORE_DB = null;
+let FIREBASE_SDK_LOADED = false;
+function loadScriptTag(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src; s.onload = ()=>resolve(); s.onerror = ()=>reject(new Error('load failed'));
+    document.head.appendChild(s);
+  });
+}
+async function ensureFirebaseSDK(){
+  if(FIREBASE_SDK_LOADED) return true;
+  try{
+    await loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+    await loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js');
+    FIREBASE_SDK_LOADED = true;
+    return true;
+  }catch(e){ toast('雲端功能載入失敗，請檢查網路連線'); return false; }
+}
+async function initFirestore(){
+  const ok = await ensureFirebaseSDK();
+  if(!ok) return false;
+  try{
+    if(!window.firebase || !FIREBASE_CONFIG || !SYNC_KEY) return false;
+    if(!firebase.apps || !firebase.apps.length){ firebase.initializeApp(FIREBASE_CONFIG); }
+    FIRESTORE_DB = firebase.firestore();
+    try{ await FIRESTORE_DB.enablePersistence({ synchronizeTabs:true }); }catch(e){ /* non-fatal: multiple tabs or unsupported browser */ }
+    return true;
+  }catch(e){ FIRESTORE_DB = null; toast('雲端連接失敗，請檢查設定內容'); return false; }
+}
+async function loadCloudCredentials(){
+  try{
+    const cfgRaw = await idbGet('__firebase_config__');
+    const key = await idbGet('__sync_key__');
+    if(cfgRaw && key){
+      FIREBASE_CONFIG = JSON.parse(cfgRaw);
+      SYNC_KEY = key;
+      await initFirestore();
+    }
+  }catch(e){ /* ignore — falls back to local storage */ }
+}
+function firestoreDocRef(key){
+  return FIRESTORE_DB.collection('sync').doc(SYNC_KEY).collection('kv').doc(key);
+}
+
+async function storageGetRaw(key){
+  try{
+    if(FIRESTORE_DB){
+      const snap = await firestoreDocRef(key).get();
+      return snap.exists ? (snap.data().value || null) : null;
+    }
+    if(USE_BRIDGE){
+      const r = await window.storage.get(key, false);
+      return r ? r.value : null;
+    }
+    if(IDB){
+      const v = await idbGet(key);
+      return (v===null || v===undefined) ? null : v;
+    }
+    return null;
+  }catch(e){ return null; }
+}
+async function storageSetRaw(key, value){
+  try{
+    if(FIRESTORE_DB){
+      await firestoreDocRef(key).set({ value, updatedAt: Date.now() });
+      return true;
+    }
+    if(USE_BRIDGE){
+      const r = await window.storage.set(key, value, false);
+      if(!r){ toast('儲存失敗，請再試一次'); return false; }
+      return true;
+    }
+    if(IDB){ await idbSet(key, value); return true; }
+    toast('這個瀏覽器不支援本機儲存，資料無法保存');
+    return false;
+  }catch(e){ toast(FIRESTORE_DB ? '雲端儲存失敗，請確認網路連線' : '儲存失敗，請再試一次'); return false; }
+}
+async function storageDeleteRaw(key){
+  try{
+    if(FIRESTORE_DB){ await firestoreDocRef(key).delete(); return; }
+    if(USE_BRIDGE){ await window.storage.delete(key, false); return; }
+    if(IDB){ await idbDelete(key); }
+  }catch(e){ /* ignore missing key */ }
+}
+
+async function loadFolders(){
+  const raw = await storageGetRaw('folders');
+  try{ FOLDERS = raw ? JSON.parse(raw) : []; }catch(e){ FOLDERS = []; }
+}
+async function persistFolders(){
+  return await storageSetRaw('folders', JSON.stringify(FOLDERS));
+}
+async function getMeta(folderId){
+  if(META_CACHE[folderId]) return META_CACHE[folderId];
+  const raw = await storageGetRaw('meta_'+folderId);
+  try{ META_CACHE[folderId] = raw ? JSON.parse(raw) : []; }catch(e){ META_CACHE[folderId] = []; }
+  return META_CACHE[folderId];
+}
+async function setMeta(folderId, arr){
+  const previous = META_CACHE[folderId];
+  META_CACHE[folderId] = arr;
+  const ok = await storageSetRaw('meta_'+folderId, JSON.stringify(arr));
+  if(!ok){ META_CACHE[folderId] = previous; return false; }
+  return true;
+}
+async function getItem(folderId, id){
+  const raw = await storageGetRaw('item_'+folderId+'_'+id);
+  try{ return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
+async function setItem(folderId, id, obj){
+  return await storageSetRaw('item_'+folderId+'_'+id, JSON.stringify(obj));
+}
+async function deleteItemFull(folderId, id){
+  await storageDeleteRaw('item_'+folderId+'_'+id);
+}
+
+/* ---------- Theme & app identity ---------- */
+function applyTheme(mode, paletteIdx){
+  mode = (mode==='dark') ? 'dark' : 'light';
+  if(paletteIdx==null || paletteIdx<0 || paletteIdx>=PALETTES.length) paletteIdx = 0;
+  const root = document.documentElement;
+  const base = THEME_BASE[mode];
+  Object.keys(base).forEach(k=> root.style.setProperty(k, base[k]));
+  const pal = PALETTES[paletteIdx];
+  const palTokens = pal[mode] || pal.light;
+  Object.keys(palTokens).forEach(k=> root.style.setProperty(k, palTokens[k]));
+  THEME_STATE = { mode, palette: paletteIdx };
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content', base['--bg']);
+}
+function currentAccentColor(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7A3244';
+}
+function setLinkRel(rel, href){
+  let link = document.querySelector('link[rel="'+rel+'"]');
+  if(!link){ link=document.createElement('link'); link.rel=rel; document.head.appendChild(link); }
+  link.href = href;
+}
+function generateAppIcon(icon, bgColor){
+  return new Promise((resolve)=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = 192; canvas.height = 192;
+    const ctx = canvas.getContext('2d');
+    const r = 36;
+    const drawRoundedBg = ()=>{
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.moveTo(r,0); ctx.lineTo(192-r,0); ctx.quadraticCurveTo(192,0,192,r);
+      ctx.lineTo(192,192-r); ctx.quadraticCurveTo(192,192,192-r,192);
+      ctx.lineTo(r,192); ctx.quadraticCurveTo(0,192,0,192-r);
+      ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
+    };
+    drawRoundedBg(); ctx.fill();
+    if(isImageIcon(icon)){
+      const img = new Image();
+      img.onload = ()=>{
+        ctx.save();
+        drawRoundedBg(); ctx.clip();
+        ctx.drawImage(img, 0, 0, 192, 192);
+        ctx.restore();
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = ()=> resolve(canvas.toDataURL('image/png'));
+      img.src = icon;
+    } else {
+      ctx.font = '104px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(icon || '📚', 96, 104);
+      resolve(canvas.toDataURL('image/png'));
+    }
+  });
+}
+async function applyAppIdentity(name, emoji){
+  document.title = name + ' · 私人收藏';
+  const bg = currentAccentColor();
+  const iconUrl = await generateAppIcon(emoji, bg);
+  setLinkRel('apple-touch-icon', iconUrl);
+  setLinkRel('icon', iconUrl);
+  let metaTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if(!metaTitle){ metaTitle=document.createElement('meta'); metaTitle.setAttribute('name','apple-mobile-web-app-title'); document.head.appendChild(metaTitle); }
+  metaTitle.setAttribute('content', name);
+  try{
+    const manifest = {
+      name: name, short_name: name.slice(0,12), start_url:'.', display:'standalone',
+      background_color: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#EDE3D0',
+      theme_color: bg,
+      icons:[{ src:iconUrl, sizes:'192x192', type:'image/png' },{ src:iconUrl, sizes:'512x512', type:'image/png' }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type:'application/manifest+json' });
+    const url = URL.createObjectURL(blob);
+    setLinkRel('manifest', url);
+  }catch(e){ /* manifest generation is best-effort */ }
+  return iconUrl;
+}
+async function loadSettings(){
+  const raw = await storageGetRaw('settings');
+  const defaults = { mode:'light', palette:0, appName:'藏書閣', appIcon:'📚', homeSortMode:'recent', defaultLanding:'home',
+    reading:{ fontSize:'medium', lineHeight:'normal', font:'serif', width:'normal', imageFit:'fit' } };
+  let s = defaults;
+  try{
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed){ s = Object.assign({}, defaults, parsed); s.reading = Object.assign({}, defaults.reading, parsed.reading||{}); }
+    }
+  }catch(e){ /* use defaults */ }
+  applyTheme(s.mode, s.palette);
+  APP_NAME = s.appName || '藏書閣';
+  APP_ICON = s.appIcon || '📚';
+  HOME_SORT_MODE = s.homeSortMode || 'recent';
+  DEFAULT_LANDING = s.defaultLanding || 'home';
+  READING_PREFS = s.reading;
+  applyReadingPrefs(READING_PREFS);
+  await applyAppIdentity(APP_NAME, APP_ICON);
+}
+async function saveSettings(){
+  await storageSetRaw('settings', JSON.stringify({
+    mode:THEME_STATE.mode, palette:THEME_STATE.palette, appName:APP_NAME, appIcon:APP_ICON,
+    homeSortMode:HOME_SORT_MODE, defaultLanding:DEFAULT_LANDING, reading:READING_PREFS
+  }));
+}
+function applyReadingPrefs(prefs){
+  const root = document.documentElement;
+  const sizeMap = { small:'15px', medium:'17px', large:'19.5px' };
+  const lhMap = { compact:'1.7', normal:'2', relaxed:'2.3' };
+  const fontMap = { serif:"'Noto Serif TC',serif", sans:"'Noto Sans TC',sans-serif" };
+  const padMap = { narrow:'32px', normal:'22px', wide:'14px' };
+  root.style.setProperty('--reading-font-size', sizeMap[prefs.fontSize] || sizeMap.medium);
+  root.style.setProperty('--reading-line-height', lhMap[prefs.lineHeight] || lhMap.normal);
+  root.style.setProperty('--reading-font-family', fontMap[prefs.font] || fontMap.serif);
+  root.style.setProperty('--reading-pad-x', padMap[prefs.width] || padMap.normal);
+}
+
+/* ---------- Folder CRUD ---------- */
+async function createOrUpdateFolder(name, icon, description, cover){
+  let folder;
+  if(EDITING && EDITING.type==='folder'){
+    folder = FOLDERS.find(x=>x.id===EDITING.id);
+    if(folder){ folder.name=name; folder.icon=icon; folder.description=description; folder.cover=cover||null; }
+  } else {
+    folder = { id:uid(), name, icon, description, cover:cover||null, createdAt:Date.now() };
+    FOLDERS.push(folder);
+  }
+  const ok = await persistFolders();
+  return ok ? folder : null;
+}
+async function deleteFolder(id){
+  const meta = await getMeta(id);
+  for(const m of meta){ await deleteItemFull(id, m.id); }
+  await storageDeleteRaw('meta_'+id);
+  delete META_CACHE[id];
+  FOLDERS = FOLDERS.filter(f=>f.id!==id);
+  await persistFolders();
+}
+
+/* ---------- Filtering & sorting ---------- */
+function filterMeta(list, filter){
+  return list.filter(m=>{
+    if(filter.favoriteOnly && !m.favorite) return false;
+    if(filter.tags && filter.tags.length && !filter.tags.every(t=>(m.tags||[]).includes(t))) return false;
+    return true;
+  });
+}
+function sortMeta(list, sortKey){
+  const arr = list.slice();
+  if(sortKey==='oldest') arr.sort((a,b)=> (a.createdAt||0)-(b.createdAt||0));
+  else if(sortKey==='title') arr.sort((a,b)=> (a.title||'').localeCompare(b.title||'','zh-Hant'));
+  else arr.sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+  return arr;
+}
+function toggleTagFilter(tag){
+  const i = CURRENT_FILTER.tags.indexOf(tag);
+  if(i>=0) CURRENT_FILTER.tags.splice(i,1); else CURRENT_FILTER.tags.push(tag);
+}
+function toggleFavoriteFilter(){
+  CURRENT_FILTER.favoriteOnly = !CURRENT_FILTER.favoriteOnly;
+}
+function tagFilterChipsHTML(tags){
+  return tags.map(t=>`<button type="button" class="chip filter-chip ${CURRENT_FILTER.tags.includes(t)?'active':''}" data-act="filter-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join('');
+}
+function rerenderCurrentFilterView(){
+  if(CURRENT_FILTER._folderId) return renderFolder(CURRENT_FILTER._folderId, CURRENT_FILTER._tab);
+  return Promise.resolve();
+}
+
+/* ---------- Router ---------- */
+function parseHash(){
+  return location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+}
+const NAV_ITEMS = [
+  { key:'home', icon:'🏠', label:'首頁', act:'go-home' },
+  { key:'new-folder', icon:'+', label:'新增資料夾', act:'go-new-folder' },
+  { key:'settings', icon:'⚙️', label:'設定', act:'go-settings' },
+  { key:'theme', icon:'🎨', label:'主題', act:'go-theme' }
+];
+function bottomNavHTML(active){
+  return `<nav class="bottom-nav">${NAV_ITEMS.map(it=>`<button type="button" class="nav-item ${active===it.key?'active':''}" data-act="${it.act}">
+    <span class="nav-icon">${it.icon}</span><span class="nav-label">${it.label}</span>
+  </button>`).join('')}</nav>`;
+}
+function renderBottomNav(show, active){
+  const el = document.getElementById('bottom-nav-root');
+  if(!el) return;
+  if(!show){ el.innerHTML = ''; return; }
+  el.innerHTML = bottomNavHTML(active);
+}
+async function route(){
+  const parts = parseHash();
+  let showNav = true, active = null;
+  if(parts[0]==='folder' && parts[1]){
+    await renderFolder(parts[1], parts[2]||'articles');
+  } else if(parts[0]==='item' && parts[1] && parts[2]){
+    await renderItem(parts[1], parts[2]);
+    showNav = false;
+  } else if(parts[0]==='edit-article' && parts[1]){
+    await renderArticleEditor(parts[1], parts[2]==='new' ? null : parts[2]);
+    showNav = false;
+  } else if(parts[0]==='folder-editor'){
+    await renderFolderEditor(parts[1]==='new' ? null : parts[1]);
+    active = (parts[1]==='new') ? 'new-folder' : null;
+  } else if(parts[0]==='settings'){
+    await renderSettings();
+    active = 'settings';
+  } else if(parts[0]==='theme'){
+    await renderThemePage();
+    active = 'theme';
+  } else {
+    await renderHome();
+    active = 'home';
+  }
+  renderBottomNav(showNav, active);
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- Home ---------- */
+async function renderHome(){
+  const app = document.getElementById('app');
+  const counts = {};
+  await Promise.all(FOLDERS.map(async f=>{
+    const meta = await getMeta(f.id);
+    counts[f.id] = { articles: meta.filter(m=>m.type==='article').length, images: meta.filter(m=>m.type==='image').length };
+  }));
+  app.innerHTML = homeHTML(counts);
+}
+function sortFoldersForHome(folders){
+  const arr = folders.slice();
+  if(HOME_SORT_MODE==='alpha') arr.sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh-Hant'));
+  else if(HOME_SORT_MODE==='mostViewed') arr.sort((a,b)=>(b.viewCount||0)-(a.viewCount||0));
+  else if(HOME_SORT_MODE==='recent') arr.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  /* 'custom' keeps FOLDERS array order as-is */
+  return arr;
+}
+const TINTS = ['#F1E4D6','#E6EAD6','#F2E3E2','#E2E6EC','#F5ECD3','#E9E2EE'];
+function bookCardHTML(f, count, i){
+  const total = count ? (count.articles + count.images) : 0;
+  const hasCover = !!f.cover;
+  const bgStyle = hasCover ? `background-image:url('${f.cover}')` : `background:${TINTS[i % TINTS.length]}`;
+  const draggable = HOME_SORT_MODE==='custom';
+  return `<div class="book-card ${hasCover?'has-cover':''}" style="${bgStyle}" data-act="open-folder" data-id="${f.id}" data-tab="articles" ${draggable?'draggable="true"':''} data-folder-drag="${f.id}">
+    ${hasCover? `<div class="book-card-scrim"></div>` : ''}
+    <div class="book-card-icon">${folderIconHTML(f.icon)}</div>
+    <div class="book-card-text">
+      <div class="book-card-name">${esc(f.name)}</div>
+      ${f.description? `<div class="book-card-desc">${esc(f.description)}</div>` : ''}
+      <div class="book-card-count">${total} 筆收藏</div>
+    </div>
+  </div>`;
+}
+function homeHTML(counts){
+  const ordered = sortFoldersForHome(FOLDERS);
+  const grid = FOLDERS.length
+    ? `<div class="folder-grid">${ordered.map((f,i)=>bookCardHTML(f, counts[f.id], i)).join('')}<div class="book-card add-card" data-act="go-new-folder"><div class="add-card-icon">＋</div><div class="add-card-label">新增資料夾</div></div></div>`
+    : `${emptyStateHTML('還沒有任何資料夾','建立第一個資料夾，開始收藏喜歡的文章與圖片')}<div class="empty-cta"><button class="btn btn-primary" data-act="go-new-folder">建立資料夾</button></div>`;
+  const dragHint = (HOME_SORT_MODE==='custom' && FOLDERS.length>1) ? `<div class="drag-hint">長按並拖曳卡片可以調整順序</div>` : '';
+  return `
+  <div class="topbar home-topbar">
+    <div>
+      <div class="app-title">${esc(APP_NAME)}</div>
+      <div class="app-subtitle">你的私人收藏角落</div>
+    </div>
+  </div>
+  <div class="page-content">${dragHint}${grid}</div>
+  `;
+}
+
+/* ---------- Folder page ---------- */
+function folderResultsHTML(folder, tab, meta){
+  const typeList = meta.filter(m=>m.type===(tab==='images'?'image':'article'));
+  let filtered = filterMeta(typeList, CURRENT_FILTER);
+  filtered = sortMeta(filtered, 'newest');
+  if(!filtered.length){
+    return emptyStateHTML(tab==='images'?'還沒有圖片收藏':'還沒有文章收藏','點右下角的按鈕新增第一筆吧');
+  }
+  return tab==='images' ? waterfallHTML(folder, filtered) : articleListHTML(folder, filtered);
+}
+function waterfallHTML(folder, list){
+  return `<div class="waterfall">${list.map(m=>`
+    <div class="img-card" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
+      <img src="${m.thumb||''}" loading="lazy"/>
+      <div class="img-card-overlay">
+        <div class="img-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||'未命名圖組')}</div>
+      </div>
+      ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
+    </div>`).join('')}</div>`;
+}
+function articleListHTML(folder, list){
+  return `<div class="result-list">${list.map(m=>`
+    <div class="result-row" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
+      <div class="result-thumb result-thumb-text">📄</div>
+      <div class="result-info">
+        <div class="result-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||'未命名文章')}</div>
+        <div class="result-excerpt">${esc(excerptOf(m))}</div>
+        <div class="result-meta">${tagsHTML(m.tags)}</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function tagToolsRowHTML(folder){
+  return `<div class="sort-row">
+    <span class="tag-tools-label">依標籤篩選收藏</span>
+    <button type="button" class="tag-manage-btn" data-act="manage-tags" data-folder="${folder.id}">🏷️ 管理標籤</button>
+  </div>`;
+}
+function folderPageHTML(folder, tab, meta){
+  const typeList = meta.filter(m=>m.type===(tab==='images'?'image':'article'));
+  const articleCount = meta.filter(m=>m.type==='article').length;
+  const imageCount = meta.filter(m=>m.type==='image').length;
+  const allTags = Array.from(new Set(typeList.flatMap(m=>m.tags||[]))).slice(0,24);
+  const favChip = `<button type="button" class="chip filter-chip ${CURRENT_FILTER.favoriteOnly?'active':''}" data-act="filter-favorite">⭐ 只看收藏</button>`;
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="folder-title" data-act="edit-folder" data-id="${folder.id}">
+      <span class="folder-title-icon">${folderIconHTML(folder.icon)}</span>
+      <span class="folder-title-text">${esc(folder.name)}</span>
+      <span class="folder-title-edit">✏️</span>
+    </div>
+    <button class="icon-btn" data-act="random-draw" data-folder="${folder.id}" aria-label="隨機翻糧">🎲</button>
+  </div>
+  <div class="tab-switch">
+    <button class="tab-btn ${tab==='articles'?'active':''}" data-act="switch-tab" data-folder="${folder.id}" data-tab="articles">文章 <span class="tab-count">${articleCount}</span></button>
+    <button class="tab-btn ${tab==='images'?'active':''}" data-act="switch-tab" data-folder="${folder.id}" data-tab="images">圖片 <span class="tab-count">${imageCount}</span></button>
+  </div>
+  ${tagToolsRowHTML(folder)}
+  <div class="filter-bar">
+    <div class="chip-scroll">${favChip}${allTags.length?tagFilterChipsHTML(allTags):''}</div>
+  </div>
+  <div id="folder-results" class="page-content">${folderResultsHTML(folder, tab, meta)}</div>
+  <button class="fab" data-act="fab-add" data-folder="${folder.id}" data-tab="${tab}" aria-label="新增收藏">＋</button>
+  `;
+}
+async function renderFolder(folderId, tab){
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  if(!folder){ location.hash='#/'; return; }
+  if(!(CURRENT_FILTER._folderId===folderId && CURRENT_FILTER._tab===tab)){
+    CURRENT_FILTER = { tags:[], favoriteOnly:false, _folderId:folderId, _tab:tab };
+  }
+  if(LAST_VIEWED_FOLDER_ID !== folderId){
+    LAST_VIEWED_FOLDER_ID = folderId;
+    folder.viewCount = (folder.viewCount||0) + 1;
+    persistFolders();
+  }
+  const meta = await getMeta(folderId);
+  FOLDER_VIEW_CTX = { folder, tab, meta };
+  const app = document.getElementById('app');
+  app.innerHTML = folderPageHTML(folder, tab, meta);
+}
+
+/* ---------- Item detail ---------- */
+async function renderItem(folderId, id){
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  if(!folder){ location.hash='#/'; return; }
+  const meta = await getMeta(folderId);
+  const m = meta.find(x=>x.id===id);
+  if(!m){ location.hash = '#/folder/'+folderId+'/articles'; return; }
+  const app = document.getElementById('app');
+  if(m.type==='article'){
+    let content = m.content;
+    if(content===undefined){
+      const legacy = await getItem(folderId, id);
+      content = legacy ? (legacy.content||'') : '';
+    }
+    app.innerHTML = articleReadHTML(folder, m, content);
+  } else {
+    const item = await getItem(folderId, id);
+    app.innerHTML = imageViewHTML(folder, m, item);
+  }
+}
+const EMBED_TOKEN_RE = /\[\[img:([a-zA-Z0-9]+)\]\]/g;
+function renderArticleBody(content, embeddedImages){
+  embeddedImages = embeddedImages || {};
+  const re = new RegExp(EMBED_TOKEN_RE.source, 'g');
+  let lastIndex = 0, out = '', match;
+  while((match = re.exec(content)) !== null){
+    const before = content.slice(lastIndex, match.index);
+    if(before.trim()) out += `<span class="reading-text-block">${esc(before)}</span>`;
+    const src = embeddedImages[match[1]];
+    if(src) out += `<img class="reading-embed-img" src="${src}" loading="lazy"/>`;
+    lastIndex = re.lastIndex;
+  }
+  const rest = content.slice(lastIndex);
+  if(rest) out += `<span class="reading-text-block">${esc(rest)}</span>`;
+  return out;
+}
+function articleReadHTML(folder, m, content){
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">${folderIconHTML(folder.icon)} ${esc(folder.name)}</div>
+    <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
+  </div>
+  <div class="reading-page">
+    <h1 class="reading-title">${esc(m.title||'未命名文章')}</h1>
+    <div class="chip-list">${tagsHTML(m.tags)}</div>
+    <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
+    <div class="reading-content">${renderArticleBody(content, m.embeddedImages)}</div>
+  </div>`;
+}
+function imageViewHTML(folder, m, item){
+  const images = (item && item.images) || [];
+  LIGHTBOX_IMAGES = images;
+  const fitClass = (READING_PREFS.imageFit==='original') ? 'fit-original' : '';
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">${folderIconHTML(folder.icon)} ${esc(folder.name)}</div>
+    <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
+  </div>
+  <div class="gallery-page">
+    <h1 class="reading-title">${esc(m.title||'未命名圖組')}</h1>
+    <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
+    <div class="chip-list">${tagsHTML(m.tags)}</div>
+    <div class="gallery-stack">${images.map((src,i)=>`<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><img class="gallery-img ${fitClass}" src="${src}" loading="lazy"/></div>`).join('')}</div>
+  </div>`;
+}
+async function openItemActionSheet(folderId, id){
+  const meta = await getMeta(folderId);
+  const m = meta.find(x=>x.id===id);
+  const favLabel = (m && m.favorite) ? '★ 取消收藏' : '☆ 加入收藏';
+  showModal(`
+    <div class="sheet-title">收藏選項</div>
+    <button class="sheet-btn" data-act="edit-item" data-folder="${folderId}" data-id="${id}">✏️ 編輯</button>
+    <button class="sheet-btn" data-act="toggle-item-favorite" data-folder="${folderId}" data-id="${id}">${favLabel}</button>
+    <button class="sheet-btn danger" data-act="delete-item" data-folder="${folderId}" data-id="${id}">🗑️ 刪除</button>
+  `);
+}
+async function toggleItemFavorite(folderId, id){
+  closeModal();
+  const meta = await getMeta(folderId);
+  const m = meta.find(x=>x.id===id);
+  if(!m) return;
+  m.favorite = !m.favorite;
+  const ok = await setMeta(folderId, meta);
+  if(!ok) return;
+  toast(m.favorite ? '已加入收藏' : '已取消收藏');
+  await route();
+}
+async function openEditForItem(folderId, id){
+  closeModal();
+  const meta = await getMeta(folderId);
+  const m = meta.find(x=>x.id===id);
+  if(!m) return;
+  if(m.type==='article') location.hash = '#/edit-article/'+folderId+'/'+id;
+  else openImageModal(folderId, id);
+}
+async function deleteItemConfirm(folderId, id){
+  closeModal();
+  if(!confirm('確定要刪除這筆收藏嗎？此動作無法復原。')) return;
+  const meta = await getMeta(folderId);
+  const item = meta.find(m=>m.id===id);
+  const newMeta = meta.filter(m=>m.id!==id);
+  await setMeta(folderId, newMeta);
+  await deleteItemFull(folderId, id);
+  toast('已刪除');
+  location.hash = '#/folder/'+folderId+'/'+((item && item.type==='image') ? 'images' : 'articles');
+}
+
+/* ---------- Lightbox ---------- */
+function openLightbox(idx){ LIGHTBOX_IDX = idx; renderLightbox(); }
+function renderLightbox(){
+  const root = document.getElementById('overlay-root');
+  const multi = LIGHTBOX_IMAGES.length > 1;
+  root.innerHTML = `<div class="lightbox" data-act="lightbox-close">
+    <button class="lb-close" data-act="lightbox-close" aria-label="關閉">×</button>
+    <img class="lb-img" src="${LIGHTBOX_IMAGES[LIGHTBOX_IDX]}"/>
+    ${multi? `<button class="lb-nav lb-prev" data-act="lightbox-prev" aria-label="上一張">‹</button><button class="lb-nav lb-next" data-act="lightbox-next" aria-label="下一張">›</button><div class="lb-count">${LIGHTBOX_IDX+1} / ${LIGHTBOX_IMAGES.length}</div>` : ''}
+  </div>`;
+  const img = root.querySelector('.lb-img');
+  img.addEventListener('click', e=>e.stopPropagation());
+  const lb = root.querySelector('.lightbox');
+  let sx = 0;
+  lb.addEventListener('touchstart', e=>{ sx = e.touches[0].clientX; }, {passive:true});
+  lb.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    if(Math.abs(dx) > 40) lightboxNav(dx>0 ? -1 : 1);
+  }, {passive:true});
+}
+function lightboxNav(dir){
+  LIGHTBOX_IDX = (LIGHTBOX_IDX + dir + LIGHTBOX_IMAGES.length) % LIGHTBOX_IMAGES.length;
+  renderLightbox();
+}
+function closeLightbox(){ document.getElementById('overlay-root').innerHTML=''; }
+
+/* ---------- Random draw (per folder) ---------- */
+async function doRandomDraw(folderId){
+  if(!folderId){ toast('請先進入一個資料夾'); return; }
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  if(!folder) return;
+  const meta = await getMeta(folderId);
+  if(meta.length===0){ toast('這個資料夾還沒有收藏'); return; }
+  const pick = meta[Math.floor(Math.random()*meta.length)];
+  const enriched = Object.assign({}, pick, { folderId: folder.id, folderName:folder.name, folderIcon:folder.icon });
+  showModal(randomModalHTML(enriched));
+}
+function randomModalHTML(pick){
+  const isImg = pick.type==='image';
+  return `
+  <div class="sheet-title">翻到了…</div>
+  <div class="random-card">
+    <div class="random-thumb">${isImg && pick.thumb ? `<img src="${pick.thumb}"/>` : '<span>📄</span>'}</div>
+    <div class="random-folder">${folderIconHTML(pick.folderIcon)} ${esc(pick.folderName)}</div>
+    <div class="random-title">${esc(pick.title || (isImg?'未命名圖組':'未命名文章'))}</div>
+    <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags)}${favoriteBadgeHTML(pick.favorite)}</div>
+  </div>
+  <div class="sheet-actions row">
+    <button class="btn btn-ghost-sm" data-act="redraw" data-folder="${pick.folderId}">🎲 再抽一次</button>
+    <button class="btn btn-primary" data-act="go-to-random-item" data-folder="${pick.folderId}" data-id="${pick.id}">前往查看</button>
+  </div>`;
+}
+
+/* ---------- Tag manager ---------- */
+async function openTagManager(folderId){
+  const meta = await getMeta(folderId);
+  const tags = Array.from(new Set(meta.flatMap(m=>m.tags||[]))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+  showModal(tagManagerHTML(folderId, tags));
+}
+function tagManagerHTML(folderId, tags){
+  if(!tags.length){
+    return `<div class="sheet-title">管理標籤</div><p class="settings-desc">這個資料夾裡還沒有任何標籤。</p>`;
+  }
+  return `
+  <div class="sheet-title">管理標籤</div>
+  <p class="settings-desc">修改文字可以重新命名標籤；清空文字後儲存則會從所有收藏中移除該標籤。</p>
+  <div id="tag-manager-list">${tags.map(t=>`
+    <div class="tag-manager-row" data-tag="${esc(t)}">
+      <input class="text-input" type="text" value="${esc(t)}" maxlength="16"/>
+      <button type="button" class="tag-manager-clear" data-act="tag-manager-clear" aria-label="清空">×</button>
+    </div>`).join('')}</div>
+  <div class="sheet-actions">
+    <button class="btn btn-primary" data-act="save-tag-manager" data-folder="${folderId}">儲存</button>
+  </div>`;
+}
+async function saveTagManager(folderId){
+  const rows = document.querySelectorAll('#tag-manager-list .tag-manager-row');
+  const renameMap = {};
+  rows.forEach(row=>{
+    const oldTag = row.dataset.tag;
+    const input = row.querySelector('input');
+    renameMap[oldTag] = input ? input.value.trim() : '';
+  });
+  const meta = await getMeta(folderId);
+  meta.forEach(m=>{
+    if(!m.tags || !m.tags.length) return;
+    const newTags = [];
+    m.tags.forEach(t=>{
+      const mapped = Object.prototype.hasOwnProperty.call(renameMap, t) ? renameMap[t] : t;
+      if(mapped && !newTags.includes(mapped)) newTags.push(mapped);
+    });
+    m.tags = newTags;
+  });
+  const ok = await setMeta(folderId, meta);
+  if(!ok) return;
+  closeModal();
+  await rerenderCurrentFilterView();
+  toast('標籤已更新');
+}
+
+/* ---------- Settings ---------- */
+function themeSectionHTML(){
+  const swatches = PALETTES.map((p,i)=>{
+    const color = (p[THEME_STATE.mode] || p.light)['--accent'];
+    return `<button type="button" class="theme-swatch ${THEME_STATE.palette===i?'active':''}" data-act="set-theme-palette" data-idx="${i}" style="background:${color}" aria-label="${p.name}主題">${THEME_STATE.palette===i?'✓':''}</button>`;
+  }).join('');
+  return `
+    <div class="settings-section-title">主題</div>
+    <div class="settings-card">
+      <div class="theme-mode-row">
+        <button type="button" class="tab-btn ${THEME_STATE.mode==='light'?'active':''}" data-act="set-theme-mode" data-mode="light">☀️ 淺色</button>
+        <button type="button" class="tab-btn ${THEME_STATE.mode==='dark'?'active':''}" data-act="set-theme-mode" data-mode="dark">🌙 深色</button>
+      </div>
+      <div class="field-label">配色</div>
+      <div class="theme-swatch-grid">${swatches}</div>
+    </div>`;
+}
+function appIdentitySectionHTML(iconUrl){
+  const customTile = isImageIcon(APP_ICON) ? `<button type="button" class="icon-opt active"><img src="${APP_ICON}"/></button>` : '';
+  return `
+  <div class="settings-section-title">App 名稱與圖示</div>
+  <div class="settings-card">
+    <div class="icon-preview-row">
+      <div class="icon-preview"><img src="${iconUrl}"/></div>
+      <input id="app-name-input" class="text-input" type="text" value="${esc(APP_NAME)}" maxlength="10" placeholder="App 名稱"/>
+    </div>
+    <div class="icon-grid">
+      ${customTile}
+      ${DEFAULT_ICONS.map(ic=>`<button type="button" class="icon-opt ${APP_ICON===ic?'active':''}" data-act="set-app-icon" data-icon="${ic}">${ic}</button>`).join('')}
+      <label class="icon-opt icon-opt-upload" for="app-icon-file-input" aria-label="上傳自訂圖示">📷</label>
+    </div>
+    <input id="app-icon-file-input" type="file" accept="image/*" style="display:none"/>
+    <div class="sheet-actions" style="margin-top:14px;">
+      <button class="btn btn-primary" data-act="save-app-name">儲存名稱與圖示</button>
+    </div>
+    <p class="settings-desc" style="margin-top:10px;">把這個網頁加到手機主畫面，就會使用你設定的名稱與圖示（iOS：分享→加入主畫面；Android：瀏覽器選單→加到主畫面）。</p>
+  </div>`;
+}
+function prefChipsHTML(act, key, options, current, extra){
+  extra = extra || {};
+  const extraAttrs = Object.keys(extra).map(k=>` data-${k}="${esc(extra[k])}"`).join('');
+  return options.map(o=>`<button type="button" class="chip filter-chip ${current===o.value?'active':''}" data-act="${act}" data-key="${key}" data-value="${esc(o.value)}"${extraAttrs}>${esc(o.label)}</button>`).join('');
+}
+function customOrderListHTML(){
+  return `<div class="tag-manager-list">${FOLDERS.map((f,i)=>`
+    <div class="tag-manager-row">
+      <span style="flex:1;display:flex;align-items:center;gap:6px;">${folderIconHTML(f.icon)} ${esc(f.name)}</span>
+      <button type="button" class="icon-btn" style="width:32px;height:32px;font-size:14px;" data-act="move-folder-order" data-id="${f.id}" data-dir="-1" ${i===0?'disabled':''}>↑</button>
+      <button type="button" class="icon-btn" style="width:32px;height:32px;font-size:14px;" data-act="move-folder-order" data-id="${f.id}" data-dir="1" ${i===FOLDERS.length-1?'disabled':''}>↓</button>
+    </div>`).join('')}</div>`;
+}
+function homeSortSectionHTML(){
+  const opts = [{value:'recent',label:'最近新增'},{value:'custom',label:'自訂排序'},{value:'mostViewed',label:'最常看的'},{value:'alpha',label:'A–Z'}];
+  const extra = HOME_SORT_MODE==='custom' ? `<div class="field-label" style="margin-top:14px;">拖曳排序（用上下鍵調整）</div>${customOrderListHTML()}` : '';
+  return `
+  <div class="settings-section-title">首頁排序</div>
+  <div class="settings-card">
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-home-sort','homeSortMode',opts,HOME_SORT_MODE)}</div>
+    ${extra}
+  </div>`;
+}
+function defaultLandingSectionHTML(){
+  const chips = [{value:'home',label:'首頁'}].concat(FOLDERS.map(f=>({value:f.id,label:f.name})));
+  return `
+  <div class="settings-section-title">預設開啟頁</div>
+  <div class="settings-card">
+    <p class="settings-desc">打開 App 時直接進入這個頁面，不用每次從首頁點選。</p>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-default-landing','defaultLanding',chips,DEFAULT_LANDING)}</div>
+  </div>`;
+}
+function readingPrefsSectionHTML(){
+  return `
+  <div class="settings-section-title">閱讀偏好</div>
+  <div class="settings-card">
+    <div class="field-label" style="margin-top:0;">文章字體大小</div>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-reading-pref','fontSize',[{value:'small',label:'小'},{value:'medium',label:'中'},{value:'large',label:'大'}],READING_PREFS.fontSize)}</div>
+    <div class="field-label">行距</div>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-reading-pref','lineHeight',[{value:'compact',label:'緊湊'},{value:'normal',label:'標準'},{value:'relaxed',label:'寬鬆'}],READING_PREFS.lineHeight)}</div>
+    <div class="field-label">字體</div>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-reading-pref','font',[{value:'serif',label:'宋體'},{value:'sans',label:'黑體'}],READING_PREFS.font)}</div>
+    <div class="field-label">閱讀頁寬度</div>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-reading-pref','width',[{value:'narrow',label:'窄'},{value:'normal',label:'標準'},{value:'wide',label:'寬'}],READING_PREFS.width)}</div>
+    <div class="field-label">圖片預設顯示</div>
+    <div class="chip-scroll" style="padding-top:0;">${prefChipsHTML('set-reading-pref','imageFit',[{value:'fit',label:'適應寬度'},{value:'original',label:'原尺寸'}],READING_PREFS.imageFit)}</div>
+  </div>`;
+}
+function cloudSyncSectionHTML(){
+  if(FIRESTORE_DB && SYNC_KEY){
+    return `
+    <div class="settings-section-title">雲端同步</div>
+    <div class="settings-card">
+      <div class="settings-row"><span>狀態</span><strong style="color:var(--moss);">✓ 已連接</strong></div>
+      <div class="settings-row"><span>同步代碼</span><strong>${esc(SYNC_KEY)}</strong></div>
+      <p class="settings-desc" style="margin-top:10px;">在另一台裝置的這個網頁貼上同一組 Firebase 設定與同步代碼，就會看到一樣的收藏。圖片較多的單筆收藏（超過約 1MB）可能會同步失敗，這是雲端資料庫單筆文件的大小上限。</p>
+      <button type="button" class="btn btn-ghost-sm" style="width:100%;" data-act="disconnect-cloud">中斷雲端連接</button>
+    </div>`;
+  }
+  return `
+  <div class="settings-section-title">雲端同步</div>
+  <div class="settings-card">
+    <p class="settings-desc">貼上 Firebase 專案設定（Firebase 主控台→專案設定→一般→你的應用程式），並自訂一組同步代碼，兩台裝置都填一樣的內容就能同步收藏。</p>
+    <label class="field-label">Firebase 設定（貼上整段 firebaseConfig）</label>
+    <textarea id="firebase-config-input" class="text-input" rows="5" placeholder='{"apiKey":"...","projectId":"...","appId":"..."}' style="font-family:monospace;font-size:12px;resize:vertical;"></textarea>
+    <label class="field-label">同步代碼</label>
+    <input id="sync-key-input" class="text-input" type="text" placeholder="自訂一組不容易被猜到的代碼" maxlength="60"/>
+    <button type="button" class="btn btn-primary" style="margin-top:14px;" data-act="connect-cloud">連接雲端同步</button>
+  </div>`;
+}
+async function connectCloudSync(){
+  const cfgInput = document.getElementById('firebase-config-input');
+  const keyInput = document.getElementById('sync-key-input');
+  const raw = cfgInput ? cfgInput.value.trim() : '';
+  const key = keyInput ? keyInput.value.trim() : '';
+  if(!raw || !key){ toast('請貼上 Firebase 設定並填寫同步代碼'); return; }
+  let cfg;
+  try{ cfg = JSON.parse(raw); }catch(e){ toast('設定格式錯誤，請確認貼的是完整的 JSON'); return; }
+  toast('連接中…');
+  FIREBASE_CONFIG = cfg; SYNC_KEY = key;
+  const ok = await initFirestore();
+  if(!ok){ FIREBASE_CONFIG = null; SYNC_KEY = null; return; }
+  await idbSet('__firebase_config__', JSON.stringify(cfg));
+  await idbSet('__sync_key__', key);
+  toast('雲端同步已連接，重新整理中…');
+  setTimeout(()=> location.reload(), 600);
+}
+async function disconnectCloudSync(){
+  if(!confirm('確定要中斷雲端同步嗎？這台裝置會改用本機儲存，本機資料不會被清空，但之後不會再跟雲端同步。')) return;
+  await idbDelete('__firebase_config__');
+  await idbDelete('__sync_key__');
+  location.reload();
+}
+async function renderSettings(){
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="modal-loading">載入中…</div>`;
+  let totalItems = 0;
+  for(const f of FOLDERS){ const meta = await getMeta(f.id); totalItems += meta.length; }
+  app.innerHTML = `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">設定</div>
+    <span style="width:38px"></span>
+  </div>
+  <div class="page-content settings-page">
+    <div class="settings-card">
+      <div class="settings-row"><span>資料夾數量</span><strong>${FOLDERS.length}</strong></div>
+      <div class="settings-row"><span>收藏總數</span><strong>${totalItems}</strong></div>
+    </div>
+    ${homeSortSectionHTML()}
+    ${defaultLandingSectionHTML()}
+    ${readingPrefsSectionHTML()}
+    <div class="settings-section-title">備份</div>
+    <div class="settings-card">
+      <p class="settings-desc">將所有資料夾與收藏匯出成一個 JSON 檔案，存放在你自己的裝置或雲端硬碟中，之後可用來復原資料。</p>
+      <button class="btn btn-primary" data-act="export-backup">匯出備份</button>
+    </div>
+    ${cloudSyncSectionHTML()}
+  </div>`;
+}
+function installSectionHTML(){
+  const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  let body;
+  if(isStandalone){
+    body = `<p class="settings-desc">已經加入主畫面了，繼續享受你的收藏庫吧。</p><span class="coming-soon-badge">✓ 已加入主畫面</span>`;
+  } else if(DEFERRED_INSTALL_PROMPT){
+    body = `<p class="settings-desc">這個瀏覽器支援一鍵安裝，點下方按鈕就能把 App 加到手機主畫面。</p><button type="button" class="btn btn-primary" data-act="install-app">📲 一鍵加入主畫面</button>`;
+  } else if(isIOS){
+    body = `<p class="settings-desc">請用 Safari 開啟這個網頁，點下方的「分享」圖示，再選擇「加入主畫面」，就能像 App 一樣使用。</p>`;
+  } else {
+    body = `<p class="settings-desc">把這個網頁上傳到公開的網路平台後，用手機瀏覽器打開，這裡就會出現一鍵加入主畫面的按鈕（目前在本機預覽環境無法安裝）。</p>`;
+  }
+  return `<div class="settings-section-title">加入主畫面</div><div class="settings-card">${body}</div>`;
+}
+async function renderThemePage(){
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="modal-loading">載入中…</div>`;
+  const iconPreviewUrl = await generateAppIcon(APP_ICON, currentAccentColor());
+  app.innerHTML = `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">主題</div>
+    <span style="width:38px"></span>
+  </div>
+  <div class="page-content settings-page">
+    ${themeSectionHTML()}
+    ${appIdentitySectionHTML(iconPreviewUrl)}
+    ${installSectionHTML()}
+  </div>`;
+}
+async function exportBackup(){
+  toast('準備備份檔中…');
+  const data = { exportedAt: Date.now(), folders: FOLDERS, metas:{}, items:{} };
+  for(const f of FOLDERS){
+    const meta = await getMeta(f.id);
+    data.metas[f.id] = meta;
+    for(const m of meta){
+      if(m.type==='image'){ data.items[f.id+'_'+m.id] = await getItem(f.id, m.id); }
+    }
+  }
+  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = APP_NAME + '備份_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('備份已下載');
+}
+
+/* ---------- Modal shell ---------- */
+function showModal(innerHtml){
+  const root = document.getElementById('overlay-root');
+  root.innerHTML = `<div class="backdrop" data-act="close-modal"></div><div class="sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><button class="sheet-close" data-act="close-modal" aria-label="關閉">×</button><div class="sheet-body">${innerHtml}</div></div>`;
+  document.body.classList.add('modal-open');
+}
+function closeModal(){
+  document.getElementById('overlay-root').innerHTML = '';
+  document.body.classList.remove('modal-open');
+  EDITING = null;
+}
+
+/* ---------- Folder editor (full page, no modal) ---------- */
+function folderEditorHTML(f, currentName, currentDesc){
+  const name = currentName!==undefined ? currentName : (f? f.name : '');
+  const desc = currentDesc!==undefined ? currentDesc : (f? (f.description||'') : '');
+  const customTile = CUSTOM_ICON_PREVIEW ? `<button type="button" class="icon-opt ${FOLDER_ICON_DRAFT===CUSTOM_ICON_PREVIEW?'active':''}" data-act="pick-custom-icon"><img src="${CUSTOM_ICON_PREVIEW}"/></button>` : '';
+  const coverPreview = COVER_DRAFT
+    ? `<div class="cover-preview"><img src="${COVER_DRAFT}"/><button type="button" class="upload-remove" data-act="remove-cover" aria-label="移除底圖">×</button></div>`
+    : `<label class="upload-btn" for="folder-cover-file-input">🖼️ 選擇底圖（選填）</label>`;
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">${f? '編輯資料夾':'新增資料夾'}</div>
+    ${f? `<button class="icon-btn" data-act="delete-folder-page" data-id="${f.id}" aria-label="刪除">🗑️</button>` : `<span style="width:38px"></span>`}
+  </div>
+  <div class="editor-page">
+    <label class="field-label">名稱</label>
+    <input id="folder-name-input" class="text-input" type="text" placeholder="例如：週末小說、風景照片" value="${esc(name)}" maxlength="20"/>
+    <label class="field-label">簡短描述（選填）</label>
+    <input id="folder-desc-input" class="text-input" type="text" placeholder="一句話介紹這個資料夾" value="${esc(desc)}" maxlength="40"/>
+    <label class="field-label">選擇底圖</label>
+    ${coverPreview}
+    <input id="folder-cover-file-input" type="file" accept="image/*" style="display:none"/>
+    <label class="field-label">選擇 icon</label>
+    <div class="icon-grid">
+      ${customTile}
+      ${DEFAULT_ICONS.map(ic=>`<button type="button" class="icon-opt ${FOLDER_ICON_DRAFT===ic?'active':''}" data-act="pick-icon" data-icon="${ic}">${ic}</button>`).join('')}
+      <label class="icon-opt icon-opt-upload" for="folder-icon-file-input" aria-label="上傳自訂圖示">📷</label>
+    </div>
+    <input id="folder-icon-file-input" type="file" accept="image/*" style="display:none"/>
+    <button type="button" class="btn btn-primary" style="margin-top:24px;" data-act="save-folder-page">${f? '儲存變更':'建立資料夾'}</button>
+  </div>`;
+}
+async function renderFolderEditor(existingId){
+  EDITING = existingId ? { type:'folder', id:existingId } : null;
+  const f = existingId ? FOLDERS.find(x=>x.id===existingId) : null;
+  FOLDER_ICON_DRAFT = f ? f.icon : DEFAULT_ICONS[0];
+  CUSTOM_ICON_PREVIEW = (f && isImageIcon(f.icon)) ? f.icon : null;
+  COVER_DRAFT = (f && f.cover) ? f.cover : null;
+  const app = document.getElementById('app');
+  app.innerHTML = folderEditorHTML(f);
+}
+function rerenderFolderEditor(){
+  const nameInput = document.getElementById('folder-name-input');
+  const nameVal = nameInput ? nameInput.value : undefined;
+  const descInput = document.getElementById('folder-desc-input');
+  const descVal = descInput ? descInput.value : undefined;
+  const f = (EDITING && EDITING.type==='folder') ? FOLDERS.find(x=>x.id===EDITING.id) : null;
+  document.getElementById('app').innerHTML = folderEditorHTML(f, nameVal, descVal);
+}
+function pickIcon(icon){
+  FOLDER_ICON_DRAFT = icon;
+  rerenderFolderEditor();
+}
+function pickCustomIcon(){
+  if(CUSTOM_ICON_PREVIEW){ FOLDER_ICON_DRAFT = CUSTOM_ICON_PREVIEW; rerenderFolderEditor(); }
+}
+function removeCoverDraft(){
+  COVER_DRAFT = null;
+  rerenderFolderEditor();
+}
+async function saveFolderPage(){
+  const input = document.getElementById('folder-name-input');
+  const descInput = document.getElementById('folder-desc-input');
+  const name = (input ? input.value.trim() : '') || '未命名資料夾';
+  const description = descInput ? descInput.value.trim() : '';
+  const icon = FOLDER_ICON_DRAFT || DEFAULT_ICONS[0];
+  const folder = await createOrUpdateFolder(name, icon, description, COVER_DRAFT);
+  if(!folder) return;
+  toast('已儲存');
+  location.hash = '#/folder/'+folder.id+'/articles';
+}
+async function deleteFolderFromPage(id){
+  if(!confirm('確定要刪除整個資料夾與其中所有收藏嗎？此動作無法復原。')) return;
+  await deleteFolder(id);
+  toast('已刪除資料夾');
+  location.hash = '#/';
+}
+
+/* ---------- Tag draft helpers (shared by article editor & image modal) ---------- */
+function tagChipsHTML(){
+  return TAG_DRAFT.map(t=>`<span class="tag chip-removable">#${esc(t)}<button type="button" data-act="remove-tag" data-tag="${esc(t)}" aria-label="移除標籤">×</button></span>`).join('');
+}
+function renderTagChips(){
+  const el = document.getElementById('tag-chip-list');
+  if(el) el.innerHTML = tagChipsHTML();
+}
+function addTagFromInput(){
+  const input = document.getElementById('tag-input');
+  if(!input) return;
+  const raw = input.value.trim().replace(/^#/, '');
+  if(raw && !TAG_DRAFT.includes(raw)){ TAG_DRAFT.push(raw); renderTagChips(); }
+  input.value = '';
+}
+function bindTagInputEnter(){
+  const ti = document.getElementById('tag-input');
+  if(ti) ti.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addTagFromInput(); } });
+}
+
+/* ---------- Article editor (full page, no modal) ---------- */
+function embedStripHTML(){
+  const ids = Object.keys(EMBEDDED_IMAGES_DRAFT);
+  if(!ids.length) return '';
+  return `<div class="embed-strip">${ids.map(id=>`<div class="embed-thumb"><img src="${EMBEDDED_IMAGES_DRAFT[id]}"/><button type="button" class="embed-thumb-remove" data-act="remove-embed-image" data-id="${id}" aria-label="移除圖片">×</button></div>`).join('')}</div>`;
+}
+function articleEditorHTML(folder, m, content){
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">${m? '編輯文章':'新增文章'}</div>
+    ${m? `<button class="icon-btn" data-act="delete-item" data-folder="${folder.id}" data-id="${m.id}" aria-label="刪除">🗑️</button>` : `<span style="width:38px"></span>`}
+  </div>
+  <div class="editor-page">
+    <input id="article-title-input" class="editor-title-input" type="text" placeholder="文章標題" value="${esc(m?m.title:'')}" maxlength="80"/>
+    <textarea id="article-content-input" class="editor-textarea" placeholder="貼上或輸入文章內容…">${esc(content)}</textarea>
+    <div class="editor-wordcount" id="editor-wordcount">字數：${content.length}</div>
+    <div class="editor-toolbar-row">
+      <button type="button" class="editor-toolbar-toggle" data-act="toggle-text-tools">🔧 文字工具</button>
+      <label class="editor-toolbar-toggle" for="embed-image-file-input">🖼️ 插入圖片</label>
+    </div>
+    <input id="embed-image-file-input" type="file" accept="image/*" multiple style="display:none"/>
+    <div id="embed-images-strip">${embedStripHTML()}</div>
+    <div id="text-tools-panel" class="text-tools-panel">
+      <div class="text-tools-row"><input id="find-input" class="text-input" type="text" placeholder="尋找文字"/></div>
+      <div class="text-tools-row"><input id="replace-input" class="text-input" type="text" placeholder="取代成…"/></div>
+      <div class="text-tools-actions">
+        <button type="button" class="btn btn-ghost-sm" data-act="find-next">找下一個</button>
+        <button type="button" class="btn btn-ghost-sm" data-act="replace-one">取代這個</button>
+        <button type="button" class="btn btn-ghost-sm" data-act="replace-all">全部取代</button>
+      </div>
+    </div>
+    <label class="field-label">標籤</label>
+    <div class="tag-row">
+      <input id="tag-input" class="text-input tag-input" type="text" placeholder="輸入標籤後按 Enter" maxlength="16"/>
+      <button type="button" class="btn btn-ghost-sm" data-act="add-tag">加入</button>
+    </div>
+    <div id="tag-chip-list" class="chip-list">${tagChipsHTML()}</div>
+    <label class="field-label">收藏</label>
+    <button type="button" id="favorite-toggle-btn" class="favorite-toggle ${FAVORITE_DRAFT?'active':''}" data-act="toggle-favorite">${FAVORITE_DRAFT? '★ 已收藏':'☆ 加入收藏'}</button>
+  </div>
+  <div class="editor-bottom-bar">
+    <button class="btn btn-primary" data-act="save-article" data-folder="${folder.id}" data-id="${m?m.id:''}">${m? '儲存變更':'加入收藏'}</button>
+  </div>`;
+}
+async function renderArticleEditor(folderId, existingId){
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  if(!folder){ location.hash='#/'; return; }
+  EDITING = existingId ? { type:'article', folderId, id:existingId } : null;
+  TAG_DRAFT = []; FAVORITE_DRAFT = false; EMBEDDED_IMAGES_DRAFT = {};
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="modal-loading">載入中…</div>`;
+  let m = null, content = '';
+  if(existingId){
+    const meta = await getMeta(folderId);
+    m = meta.find(x=>x.id===existingId);
+    if(m){
+      content = (m.content!==undefined) ? m.content : await legacyGetContent(folderId, existingId);
+      TAG_DRAFT = [].concat(m.tags||[]);
+      FAVORITE_DRAFT = !!m.favorite;
+      EMBEDDED_IMAGES_DRAFT = Object.assign({}, m.embeddedImages||{});
+    }
+  }
+  app.innerHTML = articleEditorHTML(folder, m, content);
+  bindTagInputEnter();
+  bindEditorWordCount();
+}
+async function legacyGetContent(folderId, id){
+  const item = await getItem(folderId, id);
+  return item ? (item.content||'') : '';
+}
+function bindEditorWordCount(){
+  const ta = document.getElementById('article-content-input');
+  if(ta) ta.addEventListener('input', updateEditorWordCount);
+}
+function updateEditorWordCount(){
+  const ta = document.getElementById('article-content-input');
+  const wc = document.getElementById('editor-wordcount');
+  if(ta && wc) wc.textContent = '字數：'+ta.value.length;
+}
+function renderEmbedStrip(){
+  const el = document.getElementById('embed-images-strip');
+  if(el) el.innerHTML = embedStripHTML();
+}
+function insertImageTokenAtCursor(id){
+  const ta = document.getElementById('article-content-input');
+  if(!ta) return;
+  const token = '\n[[img:'+id+']]\n';
+  const start = (ta.selectionStart!=null) ? ta.selectionStart : ta.value.length;
+  const end = (ta.selectionEnd!=null) ? ta.selectionEnd : ta.value.length;
+  ta.value = ta.value.slice(0,start) + token + ta.value.slice(end);
+  const newPos = start + token.length;
+  ta.focus(); ta.setSelectionRange(newPos, newPos);
+  updateEditorWordCount();
+}
+async function handleEmbedImageSelect(files){
+  if(!files || !files.length) return;
+  for(const file of Array.from(files)){
+    try{
+      const full = await fileToResizedDataURL(file, 1000, 0.75);
+      const id = uid().replace(/[^a-zA-Z0-9]/g,'');
+      EMBEDDED_IMAGES_DRAFT[id] = full;
+      insertImageTokenAtCursor(id);
+    }catch(e){ toast('有一張圖片處理失敗'); }
+  }
+  renderEmbedStrip();
+}
+function removeEmbedImage(id){
+  delete EMBEDDED_IMAGES_DRAFT[id];
+  const ta = document.getElementById('article-content-input');
+  if(ta){
+    ta.value = ta.value.split('\n[[img:'+id+']]\n').join('\n').split('[[img:'+id+']]').join('');
+    updateEditorWordCount();
+  }
+  renderEmbedStrip();
+}
+function findNextInEditor(){
+  const ta = document.getElementById('article-content-input');
+  const fi = document.getElementById('find-input');
+  if(!ta || !fi || !fi.value) return;
+  const term = fi.value;
+  const text = ta.value;
+  let start = ta.selectionEnd || 0;
+  let idx = text.indexOf(term, start);
+  if(idx===-1) idx = text.indexOf(term, 0);
+  if(idx===-1){ toast('找不到符合的文字'); return; }
+  ta.focus(); ta.setSelectionRange(idx, idx+term.length);
+}
+function replaceOneInEditor(){
+  const ta = document.getElementById('article-content-input');
+  const fi = document.getElementById('find-input');
+  const ri = document.getElementById('replace-input');
+  if(!ta || !fi || !fi.value) return;
+  const term = fi.value;
+  const repl = ri ? ri.value : '';
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const selected = ta.value.slice(s, e);
+  if(selected === term){
+    ta.value = ta.value.slice(0,s) + repl + ta.value.slice(e);
+    ta.focus(); ta.setSelectionRange(s, s+repl.length);
+    updateEditorWordCount();
+  } else {
+    findNextInEditor();
+  }
+}
+function replaceAllInEditor(){
+  const ta = document.getElementById('article-content-input');
+  const fi = document.getElementById('find-input');
+  const ri = document.getElementById('replace-input');
+  if(!ta || !fi || !fi.value) return;
+  const term = fi.value;
+  const repl = ri ? ri.value : '';
+  const count = ta.value.split(term).length - 1;
+  if(count===0){ toast('找不到符合的文字'); return; }
+  ta.value = ta.value.split(term).join(repl);
+  updateEditorWordCount();
+  toast('已取代 '+count+' 處');
+}
+function pruneEmbeddedImages(content, map){
+  const used = new Set();
+  const re = new RegExp(EMBED_TOKEN_RE.source, 'g');
+  let mm;
+  while((mm = re.exec(content)) !== null) used.add(mm[1]);
+  const out = {};
+  used.forEach(id=>{ if(map[id]) out[id] = map[id]; });
+  return out;
+}
+async function saveArticle(folderId, existingId){
+  const titleInput = document.getElementById('article-title-input');
+  const contentInput = document.getElementById('article-content-input');
+  const title = (titleInput ? titleInput.value.trim() : '') || '未命名文章';
+  const content = contentInput ? contentInput.value : '';
+  const embeddedImages = pruneEmbeddedImages(content, EMBEDDED_IMAGES_DRAFT);
+  const now = Date.now();
+  if(existingId){
+    const meta = await getMeta(folderId);
+    const m = meta.find(x=>x.id===existingId);
+    if(m){
+      m.title = title; m.content = content; m.tags = [].concat(TAG_DRAFT); m.favorite = FAVORITE_DRAFT; m.embeddedImages = embeddedImages; m.updatedAt = now;
+      if('excerpt' in m) delete m.excerpt;
+    }
+    const ok = await setMeta(folderId, meta);
+    if(!ok) return;
+  } else {
+    const meta = await getMeta(folderId);
+    const newArr = meta.slice();
+    const id = uid();
+    newArr.push({ id, folderId, type:'article', title, content, tags:[].concat(TAG_DRAFT), favorite:FAVORITE_DRAFT, embeddedImages, createdAt:now, updatedAt:now });
+    const ok = await setMeta(folderId, newArr);
+    if(!ok) return;
+  }
+  toast('已儲存');
+  location.hash = '#/folder/'+folderId+'/articles';
+}
+
+/* ---------- Image modal (upload sheet) ---------- */
+function uploadPreviewHTML(){
+  let html = UPLOAD_QUEUE.map((u,i)=>`<div class="upload-thumb"><img src="${u.thumb||u.full}"/><button type="button" class="upload-remove" data-act="remove-upload-preview" data-idx="${i}" aria-label="移除">×</button></div>`).join('');
+  if(PROCESSING) html += `<div class="upload-thumb upload-loading">處理中…</div>`;
+  return html;
+}
+function renderUploadPreview(){
+  const el = document.getElementById('upload-preview-grid');
+  if(el) el.innerHTML = uploadPreviewHTML();
+  const btn = document.querySelector('[data-act="save-image-item"]');
+  if(btn) btn.disabled = PROCESSING;
+}
+function imageModalHTML(folderId, meta){
+  const title = meta ? (meta.title||'') : '';
+  return `
+   <div class="sheet-title">${meta? '編輯圖片收藏':'新增圖片'}</div>
+   <label class="field-label">標題／說明（選填）</label>
+   <input id="image-title-input" class="text-input" type="text" placeholder="這組圖片的名稱" value="${esc(title)}" maxlength="60"/>
+   <label class="field-label">圖片</label>
+   <div id="upload-preview-grid" class="upload-grid">${uploadPreviewHTML()}</div>
+   <label class="upload-btn" for="file-input">📷 選擇圖片（可多選）</label>
+   <input id="file-input" type="file" accept="image/*" multiple style="display:none"/>
+   <label class="field-label">標籤</label>
+   <div class="tag-row">
+     <input id="tag-input" class="text-input tag-input" type="text" placeholder="輸入標籤後按 Enter" maxlength="16"/>
+     <button type="button" class="btn btn-ghost-sm" data-act="add-tag">加入</button>
+   </div>
+   <div id="tag-chip-list" class="chip-list">${tagChipsHTML()}</div>
+   <div class="sheet-actions">
+     <button class="btn btn-primary" data-act="save-image-item" data-folder="${folderId}" data-id="${meta?meta.id:''}" ${PROCESSING?'disabled':''}>${meta? '儲存變更':'加入收藏'}</button>
+   </div>`;
+}
+function openImageModal(folderId, existingId){
+  EDITING = existingId ? { type:'image', folderId, id:existingId } : null;
+  TAG_DRAFT = []; UPLOAD_QUEUE = []; PROCESSING = false;
+  if(existingId){
+    showModal(`<div class="modal-loading">載入中…</div>`);
+    (async()=>{
+      const meta = await getMeta(folderId);
+      const m = meta.find(x=>x.id===existingId);
+      const item = await getItem(folderId, existingId);
+      TAG_DRAFT = m ? [].concat(m.tags||[]) : [];
+      UPLOAD_QUEUE = (item && item.images) ? item.images.map(img=>({ full:img, thumb:img })) : [];
+      showModal(imageModalHTML(folderId, m));
+      bindTagInputEnter();
+    })();
+  } else {
+    showModal(imageModalHTML(folderId, null));
+    bindTagInputEnter();
+  }
+}
+function fileToSquareDataURL(file, size, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width-side)/2, sy = (img.height-side)/2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = ()=> reject(new Error('image load failed'));
+      img.src = reader.result;
+    };
+    reader.onerror = ()=> reject(new Error('file read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+function fileToResizedDataURL(file, maxDim, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let width = img.width, height = img.height;
+        if(width > height){ if(width > maxDim){ height = Math.round(height * maxDim / width); width = maxDim; } }
+        else { if(height > maxDim){ width = Math.round(width * maxDim / height); height = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = ()=> reject(new Error('image load failed'));
+      img.src = reader.result;
+    };
+    reader.onerror = ()=> reject(new Error('file read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+async function handleFileSelect(files){
+  if(!files || !files.length) return;
+  PROCESSING = true; renderUploadPreview();
+  for(const file of Array.from(files)){
+    try{
+      const results = await Promise.all([
+        fileToResizedDataURL(file, 1280, 0.75),
+        fileToResizedDataURL(file, 300, 0.6)
+      ]);
+      UPLOAD_QUEUE.push({ full:results[0], thumb:results[1] });
+    }catch(e){ toast('有一張圖片處理失敗'); }
+  }
+  PROCESSING = false;
+  renderUploadPreview();
+}
+function removeUploadPreview(idx){ UPLOAD_QUEUE.splice(idx,1); renderUploadPreview(); }
+async function saveImageItemFromModal(folderId, existingId){
+  if(UPLOAD_QUEUE.length===0){ toast('請至少上傳一張圖片'); return; }
+  const titleInput = document.getElementById('image-title-input');
+  const title = titleInput ? titleInput.value.trim() : '';
+  const now = Date.now();
+  const images = UPLOAD_QUEUE.map(u=>u.full);
+  const thumb = UPLOAD_QUEUE[0].thumb || UPLOAD_QUEUE[0].full;
+  if(existingId){
+    const meta = await getMeta(folderId);
+    const m = meta.find(x=>x.id===existingId);
+    if(m){ m.title=title; m.tags=[].concat(TAG_DRAFT); m.thumb=thumb; m.imageCount=images.length; m.updatedAt=now; }
+    const metaOk = await setMeta(folderId, meta);
+    if(!metaOk) return;
+    const itemOk = await setItem(folderId, existingId, { images });
+    if(!itemOk) return;
+  } else {
+    const meta = await getMeta(folderId);
+    const newArr = meta.slice();
+    const id = uid();
+    newArr.push({ id, folderId, type:'image', title, tags:[].concat(TAG_DRAFT), thumb, imageCount:images.length, createdAt:now, updatedAt:now });
+    const metaOk = await setMeta(folderId, newArr);
+    if(!metaOk) return;
+    const itemOk = await setItem(folderId, id, { images });
+    if(!itemOk) return;
+  }
+  closeModal();
+  await route();
+  toast('已儲存');
+}
+
+/* ---------- Global click / change delegation ---------- */
+async function onAppClick(e){
+  const el = e.target.closest('[data-act]');
+  if(!el) return;
+  const act = el.dataset.act;
+  try{
+    switch(act){
+      case 'go-home': location.hash = '#/'; break;
+      case 'go-new-folder': location.hash = '#/folder-editor/new'; break;
+      case 'go-theme': location.hash = '#/theme'; break;
+      case 'open-folder': location.hash = '#/folder/'+el.dataset.id+'/'+(el.dataset.tab||'articles'); break;
+      case 'edit-folder': location.hash = '#/folder-editor/'+el.dataset.id; break;
+      case 'switch-tab': location.hash = '#/folder/'+el.dataset.folder+'/'+el.dataset.tab; break;
+      case 'open-item': location.hash = '#/item/'+el.dataset.folder+'/'+el.dataset.id; break;
+      case 'fab-add':
+        if(el.dataset.tab==='images') openImageModal(el.dataset.folder);
+        else location.hash = '#/edit-article/'+el.dataset.folder+'/new';
+        break;
+      case 'go-settings': location.hash = '#/settings'; break;
+      case 'go-back': if(history.length>1) history.back(); else location.hash='#/'; break;
+      case 'random-draw': case 'redraw': await doRandomDraw(el.dataset.folder); break;
+      case 'go-to-random-item': closeModal(); location.hash = '#/item/'+el.dataset.folder+'/'+el.dataset.id; break;
+      case 'item-menu': await openItemActionSheet(el.dataset.folder, el.dataset.id); break;
+      case 'close-modal': closeModal(); break;
+      case 'save-folder-page': await saveFolderPage(); break;
+      case 'delete-folder-page': await deleteFolderFromPage(el.dataset.id); break;
+      case 'pick-icon': pickIcon(el.dataset.icon); break;
+      case 'pick-custom-icon': pickCustomIcon(); break;
+      case 'remove-cover': removeCoverDraft(); break;
+      case 'save-article': await saveArticle(el.dataset.folder, el.dataset.id||null); break;
+      case 'save-image-item': await saveImageItemFromModal(el.dataset.folder, el.dataset.id||null); break;
+      case 'add-tag': addTagFromInput(); break;
+      case 'remove-tag': TAG_DRAFT = TAG_DRAFT.filter(t=>t!==el.dataset.tag); renderTagChips(); break;
+      case 'toggle-favorite': {
+        FAVORITE_DRAFT = !FAVORITE_DRAFT;
+        const btn = document.getElementById('favorite-toggle-btn');
+        if(btn){ btn.classList.toggle('active', FAVORITE_DRAFT); btn.textContent = FAVORITE_DRAFT ? '★ 已收藏' : '☆ 加入收藏'; }
+        break;
+      }
+      case 'toggle-item-favorite': await toggleItemFavorite(el.dataset.folder, el.dataset.id); break;
+      case 'edit-item': await openEditForItem(el.dataset.folder, el.dataset.id); break;
+      case 'delete-item': await deleteItemConfirm(el.dataset.folder, el.dataset.id); break;
+      case 'open-lightbox': openLightbox(Number(el.dataset.idx)); break;
+      case 'lightbox-close': closeLightbox(); break;
+      case 'lightbox-prev': lightboxNav(-1); break;
+      case 'lightbox-next': lightboxNav(1); break;
+      case 'remove-upload-preview': removeUploadPreview(Number(el.dataset.idx)); break;
+      case 'export-backup': await exportBackup(); break;
+      case 'connect-cloud': await connectCloudSync(); break;
+      case 'disconnect-cloud': await disconnectCloudSync(); break;
+      case 'filter-favorite': toggleFavoriteFilter(); await rerenderCurrentFilterView(); break;
+      case 'filter-tag': toggleTagFilter(el.dataset.tag); await rerenderCurrentFilterView(); break;
+      case 'manage-tags': await openTagManager(el.dataset.folder); break;
+      case 'tag-manager-clear': { const row = el.closest('.tag-manager-row'); if(row){ const inp = row.querySelector('input'); if(inp) inp.value=''; } break; }
+      case 'save-tag-manager': await saveTagManager(el.dataset.folder); break;
+      case 'toggle-text-tools': { const p = document.getElementById('text-tools-panel'); if(p) p.classList.toggle('open'); break; }
+      case 'remove-embed-image': removeEmbedImage(el.dataset.id); break;
+      case 'find-next': findNextInEditor(); break;
+      case 'replace-one': replaceOneInEditor(); break;
+      case 'replace-all': replaceAllInEditor(); break;
+      case 'set-theme-mode': applyTheme(el.dataset.mode, THEME_STATE.palette); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
+      case 'set-theme-palette': applyTheme(THEME_STATE.mode, Number(el.dataset.idx)); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
+      case 'set-app-icon': APP_ICON = el.dataset.icon; await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
+      case 'save-app-name': {
+        const inp = document.getElementById('app-name-input');
+        APP_NAME = (inp ? inp.value.trim() : '') || '藏書閣';
+        await applyAppIdentity(APP_NAME, APP_ICON);
+        await saveSettings();
+        await renderThemePage();
+        toast('已更新');
+        break;
+      }
+      case 'set-home-sort': HOME_SORT_MODE = el.dataset.value; await saveSettings(); await renderSettings(); break;
+      case 'install-app': {
+        if(DEFERRED_INSTALL_PROMPT){
+          DEFERRED_INSTALL_PROMPT.prompt();
+          try{ await DEFERRED_INSTALL_PROMPT.userChoice; }catch(err){}
+          DEFERRED_INSTALL_PROMPT = null;
+          await renderThemePage();
+        }
+        break;
+      }
+      case 'set-default-landing': DEFAULT_LANDING = el.dataset.value; await saveSettings(); await renderSettings(); toast('已更新'); break;
+      case 'set-reading-pref': {
+        READING_PREFS = Object.assign({}, READING_PREFS, { [el.dataset.key]: el.dataset.value });
+        applyReadingPrefs(READING_PREFS);
+        await saveSettings();
+        await renderSettings();
+        break;
+      }
+      case 'move-folder-order': {
+        const idx = FOLDERS.findIndex(x=>x.id===el.dataset.id);
+        const dir = Number(el.dataset.dir);
+        const swapIdx = idx + dir;
+        if(idx>=0 && swapIdx>=0 && swapIdx<FOLDERS.length){
+          const tmp = FOLDERS[idx]; FOLDERS[idx] = FOLDERS[swapIdx]; FOLDERS[swapIdx] = tmp;
+          await persistFolders();
+          await renderSettings();
+        }
+        break;
+      }
+    }
+  }catch(err){ console.error(err); toast('發生錯誤，請再試一次'); }
+}
+function onFolderDragStart(e){
+  const card = e.target.closest('[data-folder-drag]');
+  if(!card || card.getAttribute('draggable')!=='true') return;
+  DRAG_FOLDER_ID = card.dataset.folderDrag;
+  card.classList.add('dragging');
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed = 'move';
+    try{ e.dataTransfer.setData('text/plain', DRAG_FOLDER_ID); }catch(err){}
+  }
+}
+function onFolderDragOver(e){
+  if(!DRAG_FOLDER_ID) return;
+  const card = e.target.closest('[data-folder-drag]');
+  if(!card) return;
+  e.preventDefault();
+}
+async function onFolderDrop(e){
+  if(!DRAG_FOLDER_ID) return;
+  const card = e.target.closest('[data-folder-drag]');
+  if(!card) return;
+  e.preventDefault();
+  const targetId = card.dataset.folderDrag;
+  if(targetId && targetId !== DRAG_FOLDER_ID){
+    const fromIdx = FOLDERS.findIndex(f=>f.id===DRAG_FOLDER_ID);
+    const toIdx = FOLDERS.findIndex(f=>f.id===targetId);
+    if(fromIdx>=0 && toIdx>=0){
+      const moved = FOLDERS.splice(fromIdx,1)[0];
+      FOLDERS.splice(toIdx,0,moved);
+      await persistFolders();
+      await renderHome();
+    }
+  }
+}
+function onFolderDragEnd(e){
+  const card = e.target.closest('[data-folder-drag]');
+  if(card) card.classList.remove('dragging');
+  DRAG_FOLDER_ID = null;
+}
+async function onAppChange(e){
+  if(e.target && e.target.id==='file-input'){
+    await handleFileSelect(e.target.files);
+    e.target.value = '';
+  }
+  if(e.target && e.target.id==='embed-image-file-input'){
+    const files = e.target.files;
+    e.target.value = '';
+    await handleEmbedImageSelect(files);
+  }
+  if(e.target && e.target.id==='folder-cover-file-input'){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const dataUrl = await fileToResizedDataURL(file, 900, 0.78);
+      COVER_DRAFT = dataUrl;
+      rerenderFolderEditor();
+    }catch(err){ toast('圖片處理失敗，請再試一次'); }
+  }
+  if(e.target && e.target.id==='folder-icon-file-input'){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const dataUrl = await fileToSquareDataURL(file, 160, 0.85);
+      CUSTOM_ICON_PREVIEW = dataUrl;
+      FOLDER_ICON_DRAFT = dataUrl;
+      rerenderFolderEditor();
+    }catch(err){ toast('圖片處理失敗，請再試一次'); }
+  }
+  if(e.target && e.target.id==='app-icon-file-input'){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    try{
+      const dataUrl = await fileToSquareDataURL(file, 192, 0.9);
+      APP_ICON = dataUrl;
+      await applyAppIdentity(APP_NAME, APP_ICON);
+      await saveSettings();
+      await renderSettings();
+      toast('已更新圖示');
+    }catch(err){ toast('圖片處理失敗，請再試一次'); }
+  }
+}
+
+/* ---------- Init ---------- */
+async function init(){
+  document.body.addEventListener('click', onAppClick);
+  document.body.addEventListener('change', onAppChange);
+  document.body.addEventListener('dragstart', onFolderDragStart);
+  document.body.addEventListener('dragover', onFolderDragOver);
+  document.body.addEventListener('drop', onFolderDrop);
+  document.body.addEventListener('dragend', onFolderDragEnd);
+  await initStorage();
+  await loadCloudCredentials();
+  await loadSettings();
+  await loadFolders();
+  if(parseHash().length===0 && DEFAULT_LANDING && DEFAULT_LANDING!=='home'){
+    const f = FOLDERS.find(x=>x.id===DEFAULT_LANDING);
+    if(f){ location.hash = '#/folder/'+f.id+'/articles'; return; }
+  }
+  await route();
+}
+init();
+</script>
+</body>
+</html>
