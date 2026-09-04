@@ -282,6 +282,8 @@
   .upload-loading{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);text-align:center;padding:4px;}
   .upload-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(15,10,5,.6);color:#fff;font-size:12px;line-height:1;}
   .upload-btn{display:block;text-align:center;border:1.5px dashed var(--line);border-radius:var(--radius-sm);padding:14px;font-size:13.5px;color:var(--ink-soft);}
+  .import-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--ink-faint);font-size:11.5px;}
+  .import-divider::before,.import-divider::after{content:'';flex:1;height:1px;background:var(--line);}
   .favorite-toggle{display:block;width:100%;text-align:center;border:1px solid var(--line);background:var(--bg);color:var(--ink-soft);padding:12px 16px;border-radius:var(--radius-pill);font-size:14px;}
   .favorite-toggle.active{background:var(--gold-soft);color:var(--gold);border-color:var(--gold);}
   .sheet-btn{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px solid var(--line);padding:15px 4px;font-size:15px;color:var(--ink);}
@@ -1516,6 +1518,11 @@ function articleEditorHTML(folder, m, content){
     ${m? `<button class="icon-btn" data-act="delete-item" data-folder="${folder.id}" data-id="${m.id}" aria-label="刪除">🗑️</button>` : `<span style="width:38px"></span>`}
   </div>
   <div class="editor-page">
+    ${!m ? `
+    <label class="upload-btn" for="bulk-import-file-input">📤 批量匯入文件（.txt／.md／.docx，一份檔案自動變成一篇文章）</label>
+    <input id="bulk-import-file-input" data-folder="${folder.id}" type="file" accept=".txt,.md,.markdown,.docx" multiple style="display:none"/>
+    <div class="import-divider"><span>或手動輸入</span></div>
+    ` : ''}
     <input id="article-title-input" class="editor-title-input" type="text" placeholder="文章標題" value="${esc(m?m.title:'')}" maxlength="80"/>
     <textarea id="article-content-input" class="editor-textarea" placeholder="貼上或輸入文章內容…">${esc(content)}</textarea>
     <div class="editor-wordcount" id="editor-wordcount">字數：${content.length}</div>
@@ -1695,6 +1702,77 @@ async function saveArticle(folderId, existingId){
   }
   toast('已儲存');
   location.hash = '#/folder/'+folderId+'/articles';
+}
+
+/* ---------- Bulk document import ---------- */
+let MAMMOTH_LOADED = false;
+async function ensureMammothSDK(){
+  if(MAMMOTH_LOADED) return true;
+  try{
+    await loadScriptTag('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');
+    MAMMOTH_LOADED = !!window.mammoth;
+    if(!MAMMOTH_LOADED) toast('文件解析功能載入失敗');
+    return MAMMOTH_LOADED;
+  }catch(e){ toast('文件解析功能載入失敗，請檢查網路連線'); return false; }
+}
+async function readFileAsArticleText(file){
+  const name = (file.name||'').toLowerCase();
+  if(name.endsWith('.docx')){
+    const ok = await ensureMammothSDK();
+    if(!ok) return null;
+    const buf = await file.arrayBuffer();
+    const result = await window.mammoth.extractRawText({ arrayBuffer: buf });
+    return (result && typeof result.value==='string') ? result.value : '';
+  }
+  return await file.text();
+}
+function extractTitleAndBody(text, fallbackName){
+  const trimmed = (text||'').replace(/\r\n/g,'\n');
+  const lines = trimmed.split('\n');
+  let i = 0;
+  while(i<lines.length && lines[i].trim()==='') i++;
+  let firstLine = (i<lines.length) ? lines[i].trim() : '';
+  firstLine = firstLine.replace(/^#+\s*/, '');
+  if(firstLine && firstLine.length<=60){
+    const rest = lines.slice(i+1).join('\n').replace(/^\n+/, '');
+    return { title: firstLine, content: rest };
+  }
+  return { title: fallbackName || '未命名文章', content: trimmed.trim() };
+}
+async function handleBulkImportFiles(files, folderId){
+  if(!files || !files.length) return;
+  toast('匯入中，請稍候…');
+  const meta = await getMeta(folderId);
+  const newArr = meta.slice();
+  const now = Date.now();
+  let successCount = 0, failCount = 0;
+  let offset = 0;
+  for(const file of Array.from(files)){
+    try{
+      const text = await readFileAsArticleText(file);
+      if(text===null){ failCount++; continue; }
+      const nameNoExt = (file.name||'未命名文章').replace(/\.[^.]+$/, '');
+      const parsed = extractTitleAndBody(text, nameNoExt);
+      const id = uid();
+      newArr.push({
+        id, folderId, type:'article',
+        title: parsed.title || nameNoExt || '未命名文章',
+        content: parsed.content || '',
+        tags: [], favorite: false, embeddedImages: {},
+        createdAt: now + offset, updatedAt: now + offset
+      });
+      offset++;
+      successCount++;
+    }catch(e){ failCount++; }
+  }
+  if(successCount>0){
+    const ok = await setMeta(folderId, newArr);
+    if(!ok){ toast('匯入失敗，請再試一次'); return; }
+  }
+  if(failCount>0 && successCount>0) toast('已匯入 '+successCount+' 篇，'+failCount+' 個檔案無法解析');
+  else if(failCount>0) toast('匯入失敗，'+failCount+' 個檔案無法解析');
+  else toast('已匯入 '+successCount+' 篇文章');
+  if(successCount>0) location.hash = '#/folder/'+folderId+'/articles';
 }
 
 /* ---------- Image modal (upload sheet) ---------- */
@@ -1989,6 +2067,12 @@ async function onAppChange(e){
     const files = e.target.files;
     e.target.value = '';
     await handleEmbedImageSelect(files);
+  }
+  if(e.target && e.target.id==='bulk-import-file-input'){
+    const folderId = e.target.dataset.folder;
+    const files = e.target.files;
+    e.target.value = '';
+    await handleBulkImportFiles(files, folderId);
   }
   if(e.target && e.target.id==='folder-cover-file-input'){
     const file = e.target.files && e.target.files[0];
