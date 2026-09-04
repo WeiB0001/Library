@@ -1273,13 +1273,24 @@ function cloudSyncSectionHTML(){
   return `
   <div class="settings-section-title">雲端同步</div>
   <div class="settings-card">
-    <p class="settings-desc">貼上 Firebase 專案設定（Firebase 主控台→專案設定→一般→你的應用程式），並自訂一組同步代碼，兩台裝置都填一樣的內容就能同步收藏。</p>
-    <label class="field-label">Firebase 設定（貼上整段 firebaseConfig）</label>
-    <textarea id="firebase-config-input" class="text-input" rows="5" placeholder='{"apiKey":"...","projectId":"...","appId":"..."}' style="font-family:monospace;font-size:12px;resize:vertical;"></textarea>
+    <p class="settings-desc">直接整段貼上 Firebase 主控台給你的那段程式碼就可以（含 <code>const firebaseConfig = { ... }</code> 也沒關係，會自動辨識），不用自己改成 JSON 格式。</p>
+    <label class="field-label">Firebase 設定</label>
+    <textarea id="firebase-config-input" class="text-input" rows="6" placeholder='const firebaseConfig = {&#10;  apiKey: "AIza...",&#10;  projectId: "your-project",&#10;  appId: "1:xxxx:web:xxxx"&#10;};' style="font-family:monospace;font-size:12px;resize:vertical;"></textarea>
     <label class="field-label">同步代碼</label>
     <input id="sync-key-input" class="text-input" type="text" placeholder="自訂一組不容易被猜到的代碼" maxlength="60"/>
     <button type="button" class="btn btn-primary" style="margin-top:14px;" data-act="connect-cloud">連接雲端同步</button>
   </div>`;
+}
+function parseFirebaseConfigInput(raw){
+  if(!raw) return null;
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if(start===-1 || end===-1 || end<start) return null;
+  let body = raw.slice(start, end+1);
+  body = body.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":');
+  body = body.replace(/'([^'\\]*)'/g, '"$1"');
+  body = body.replace(/,(\s*[}\]])/g, '$1');
+  try{ return JSON.parse(body); }catch(e){ return null; }
 }
 async function connectCloudSync(){
   const cfgInput = document.getElementById('firebase-config-input');
@@ -1287,8 +1298,8 @@ async function connectCloudSync(){
   const raw = cfgInput ? cfgInput.value.trim() : '';
   const key = keyInput ? keyInput.value.trim() : '';
   if(!raw || !key){ toast('請貼上 Firebase 設定並填寫同步代碼'); return; }
-  let cfg;
-  try{ cfg = JSON.parse(raw); }catch(e){ toast('設定格式錯誤，請確認貼的是完整的 JSON'); return; }
+  const cfg = parseFirebaseConfigInput(raw);
+  if(!cfg || !cfg.apiKey || !cfg.projectId){ toast('看不懂這段設定，請確認有貼到完整的 { ... } 內容，包含 apiKey 與 projectId'); return; }
   toast('連接中…');
   FIREBASE_CONFIG = cfg; SYNC_KEY = key;
   const ok = await initFirestore();
