@@ -359,6 +359,7 @@ let LAST_VIEWED_FOLDER_ID = null;
 let DRAG_FOLDER_ID = null;
 let UPLOAD_QUEUE = [];
 let TAG_DRAFT = [];
+let EXISTING_TAGS_DRAFT = [];
 let FAVORITE_DRAFT = false;
 let EMBEDDED_IMAGES_DRAFT = {};
 let FOLDER_ICON_DRAFT = null;
@@ -786,7 +787,7 @@ function parseHash(){
 }
 const NAV_ITEMS = [
   { key:'home', icon:'🏠', label:'首頁', act:'go-home' },
-  { key:'new-folder', icon:'+', label:'新增資料夾', act:'go-new-folder' },
+  { key:'random', icon:'🎲', label:'隨機抽選', act:'random-draw-global' },
   { key:'settings', icon:'⚙️', label:'設定', act:'go-settings' },
   { key:'theme', icon:'🎨', label:'主題', act:'go-theme' }
 ];
@@ -814,7 +815,7 @@ async function route(){
     showNav = false;
   } else if(parts[0]==='folder-editor'){
     await renderFolderEditor(parts[1]==='new' ? null : parts[1]);
-    active = (parts[1]==='new') ? 'new-folder' : null;
+    active = null;
   } else if(parts[0]==='settings'){
     await renderSettings();
     active = 'settings';
@@ -1104,9 +1105,20 @@ async function doRandomDraw(folderId){
   if(meta.length===0){ toast('這個資料夾還沒有收藏'); return; }
   const pick = meta[Math.floor(Math.random()*meta.length)];
   const enriched = Object.assign({}, pick, { folderId: folder.id, folderName:folder.name, folderIcon:folder.icon });
-  showModal(randomModalHTML(enriched));
+  showModal(randomModalHTML(enriched, false));
 }
-function randomModalHTML(pick){
+async function doRandomDrawGlobal(){
+  if(FOLDERS.length===0){ toast('請先建立資料夾並加入收藏'); return; }
+  const all = [];
+  for(const f of FOLDERS){
+    const meta = await getMeta(f.id);
+    meta.forEach(m=> all.push(Object.assign({}, m, { folderId:f.id, folderName:f.name, folderIcon:f.icon })));
+  }
+  if(all.length===0){ toast('目前還沒有收藏，先加入一些吧'); return; }
+  const pick = all[Math.floor(Math.random()*all.length)];
+  showModal(randomModalHTML(pick, true));
+}
+function randomModalHTML(pick, isGlobal){
   const isImg = pick.type==='image';
   return `
   <div class="sheet-title">翻到了…</div>
@@ -1117,7 +1129,7 @@ function randomModalHTML(pick){
     <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags)}${favoriteBadgeHTML(pick.favorite)}</div>
   </div>
   <div class="sheet-actions row">
-    <button class="btn btn-ghost-sm" data-act="redraw" data-folder="${pick.folderId}">🎲 再抽一次</button>
+    <button class="btn btn-ghost-sm" data-act="${isGlobal?'redraw-global':'redraw'}" ${isGlobal?'':`data-folder="${pick.folderId}"`}>🎲 再抽一次</button>
     <button class="btn btn-primary" data-act="go-to-random-item" data-folder="${pick.folderId}" data-id="${pick.id}">前往查看</button>
   </div>`;
 }
@@ -1482,9 +1494,16 @@ async function deleteFolderFromPage(id){
 function tagChipsHTML(){
   return TAG_DRAFT.map(t=>`<span class="tag chip-removable">#${esc(t)}<button type="button" data-act="remove-tag" data-tag="${esc(t)}" aria-label="移除標籤">×</button></span>`).join('');
 }
+function tagSuggestionsHTML(){
+  const avail = (EXISTING_TAGS_DRAFT||[]).filter(t=>!TAG_DRAFT.includes(t));
+  if(!avail.length) return '';
+  return `<div class="chip-scroll" style="padding:6px 0 2px;">${avail.map(t=>`<button type="button" class="chip filter-chip" data-act="add-existing-tag" data-tag="${esc(t)}">#${esc(t)}</button>`).join('')}</div>`;
+}
 function renderTagChips(){
   const el = document.getElementById('tag-chip-list');
   if(el) el.innerHTML = tagChipsHTML();
+  const sugEl = document.getElementById('tag-suggestions-wrap');
+  if(sugEl) sugEl.innerHTML = tagSuggestionsHTML();
 }
 function addTagFromInput(){
   const input = document.getElementById('tag-input');
@@ -1492,6 +1511,9 @@ function addTagFromInput(){
   const raw = input.value.trim().replace(/^#/, '');
   if(raw && !TAG_DRAFT.includes(raw)){ TAG_DRAFT.push(raw); renderTagChips(); }
   input.value = '';
+}
+function addExistingTag(tag){
+  if(tag && !TAG_DRAFT.includes(tag)){ TAG_DRAFT.push(tag); renderTagChips(); }
 }
 function bindTagInputEnter(){
   const ti = document.getElementById('tag-input');
@@ -1541,6 +1563,7 @@ function articleEditorHTML(folder, m, content){
       <button type="button" class="btn btn-ghost-sm" data-act="add-tag">加入</button>
     </div>
     <div id="tag-chip-list" class="chip-list">${tagChipsHTML()}</div>
+    <div id="tag-suggestions-wrap">${tagSuggestionsHTML()}</div>
     <label class="field-label">收藏</label>
     <button type="button" id="favorite-toggle-btn" class="favorite-toggle ${FAVORITE_DRAFT?'active':''}" data-act="toggle-favorite">${FAVORITE_DRAFT? '★ 已收藏':'☆ 加入收藏'}</button>
   </div>
@@ -1555,9 +1578,10 @@ async function renderArticleEditor(folderId, existingId){
   TAG_DRAFT = []; FAVORITE_DRAFT = false; EMBEDDED_IMAGES_DRAFT = {};
   const app = document.getElementById('app');
   app.innerHTML = `<div class="modal-loading">載入中…</div>`;
+  const meta = await getMeta(folderId);
+  EXISTING_TAGS_DRAFT = Array.from(new Set(meta.flatMap(x=>x.tags||[]))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
   let m = null, content = '';
   if(existingId){
-    const meta = await getMeta(folderId);
     m = meta.find(x=>x.id===existingId);
     if(m){
       content = (m.content!==undefined) ? m.content : await legacyGetContent(folderId, existingId);
@@ -1602,7 +1626,7 @@ async function handleEmbedImageSelect(files){
   if(!files || !files.length) return;
   for(const file of Array.from(files)){
     try{
-      const full = await fileToResizedDataURL(file, 1000, 0.75);
+      const full = await fileToResizedDataURL(file, 900, 0.72, 500*1024);
       const id = uid().replace(/[^a-zA-Z0-9]/g,'');
       EMBEDDED_IMAGES_DRAFT[id] = full;
       insertImageTokenAtCursor(id);
@@ -1797,6 +1821,7 @@ function imageModalHTML(folderId, meta){
      <button type="button" class="btn btn-ghost-sm" data-act="add-tag">加入</button>
    </div>
    <div id="tag-chip-list" class="chip-list">${tagChipsHTML()}</div>
+   <div id="tag-suggestions-wrap">${tagSuggestionsHTML()}</div>
    <div class="sheet-actions">
      <button class="btn btn-primary" data-act="save-image-item" data-folder="${folderId}" data-id="${meta?meta.id:''}" ${PROCESSING?'disabled':''}>${meta? '儲存變更':'加入收藏'}</button>
    </div>`;
@@ -1804,21 +1829,20 @@ function imageModalHTML(folderId, meta){
 function openImageModal(folderId, existingId){
   EDITING = existingId ? { type:'image', folderId, id:existingId } : null;
   TAG_DRAFT = []; UPLOAD_QUEUE = []; PROCESSING = false;
-  if(existingId){
-    showModal(`<div class="modal-loading">載入中…</div>`);
-    (async()=>{
-      const meta = await getMeta(folderId);
-      const m = meta.find(x=>x.id===existingId);
-      const item = await getItem(folderId, existingId);
+  showModal(`<div class="modal-loading">載入中…</div>`);
+  (async()=>{
+    const meta = await getMeta(folderId);
+    EXISTING_TAGS_DRAFT = Array.from(new Set(meta.flatMap(x=>x.tags||[]))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    let m = null, item = null;
+    if(existingId){
+      m = meta.find(x=>x.id===existingId);
+      item = await getItem(folderId, existingId);
       TAG_DRAFT = m ? [].concat(m.tags||[]) : [];
       UPLOAD_QUEUE = (item && item.images) ? item.images.map(img=>({ full:img, thumb:img })) : [];
-      showModal(imageModalHTML(folderId, m));
-      bindTagInputEnter();
-    })();
-  } else {
-    showModal(imageModalHTML(folderId, null));
+    }
+    showModal(imageModalHTML(folderId, m));
     bindTagInputEnter();
-  }
+  })();
 }
 function fileToSquareDataURL(file, size, quality){
   return new Promise((resolve, reject)=>{
@@ -1841,7 +1865,7 @@ function fileToSquareDataURL(file, size, quality){
     reader.readAsDataURL(file);
   });
 }
-function fileToResizedDataURL(file, maxDim, quality){
+function fileToResizedDataURL(file, maxDim, quality, targetBytes){
   return new Promise((resolve, reject)=>{
     const reader = new FileReader();
     reader.onload = ()=>{
@@ -1855,7 +1879,17 @@ function fileToResizedDataURL(file, maxDim, quality){
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,height);
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        let q = quality;
+        let dataUrl = canvas.toDataURL('image/jpeg', q);
+        if(targetBytes){
+          let attempts = 0;
+          while(dataUrl.length*0.75 > targetBytes && q > 0.4 && attempts < 5){
+            q -= 0.08;
+            dataUrl = canvas.toDataURL('image/jpeg', q);
+            attempts++;
+          }
+        }
+        resolve(dataUrl);
       };
       img.onerror = ()=> reject(new Error('image load failed'));
       img.src = reader.result;
@@ -1870,8 +1904,8 @@ async function handleFileSelect(files){
   for(const file of Array.from(files)){
     try{
       const results = await Promise.all([
-        fileToResizedDataURL(file, 1280, 0.75),
-        fileToResizedDataURL(file, 300, 0.6)
+        fileToResizedDataURL(file, 1000, 0.72, 650*1024),
+        fileToResizedDataURL(file, 320, 0.6, 70*1024)
       ]);
       UPLOAD_QUEUE.push({ full:results[0], thumb:results[1] });
     }catch(e){ toast('有一張圖片處理失敗'); }
@@ -1931,6 +1965,7 @@ async function onAppClick(e){
       case 'go-settings': location.hash = '#/settings'; break;
       case 'go-back': if(history.length>1) history.back(); else location.hash='#/'; break;
       case 'random-draw': case 'redraw': await doRandomDraw(el.dataset.folder); break;
+      case 'random-draw-global': case 'redraw-global': await doRandomDrawGlobal(); break;
       case 'go-to-random-item': closeModal(); location.hash = '#/item/'+el.dataset.folder+'/'+el.dataset.id; break;
       case 'item-menu': await openItemActionSheet(el.dataset.folder, el.dataset.id); break;
       case 'close-modal': closeModal(); break;
@@ -1942,6 +1977,7 @@ async function onAppClick(e){
       case 'save-article': await saveArticle(el.dataset.folder, el.dataset.id||null); break;
       case 'save-image-item': await saveImageItemFromModal(el.dataset.folder, el.dataset.id||null); break;
       case 'add-tag': addTagFromInput(); break;
+      case 'add-existing-tag': addExistingTag(el.dataset.tag); break;
       case 'remove-tag': TAG_DRAFT = TAG_DRAFT.filter(t=>t!==el.dataset.tag); renderTagChips(); break;
       case 'toggle-favorite': {
         FAVORITE_DRAFT = !FAVORITE_DRAFT;
@@ -2073,7 +2109,7 @@ async function onAppChange(e){
     e.target.value = '';
     if(!file) return;
     try{
-      const dataUrl = await fileToResizedDataURL(file, 900, 0.78);
+      const dataUrl = await fileToResizedDataURL(file, 800, 0.72, 400*1024);
       COVER_DRAFT = dataUrl;
       rerenderFolderEditor();
     }catch(err){ toast('圖片處理失敗，請再試一次'); }
