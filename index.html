@@ -57,12 +57,12 @@
   /* Shared tactile interaction: gentle press feedback everywhere */
   .book-card,.img-card,.article-card,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
   .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
-  .tag-manage-btn,.add-card{
+  .tag-manage-btn,.add-card,.layout-option-row{
     transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
   }
   .book-card:active,.img-card:active,.article-card:active,.chip:active,.tab-btn:active,
   .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
-  .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active{
+  .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active,.layout-option-row:active{
     transform:scale(.96);
   }
 
@@ -76,15 +76,15 @@
     box-shadow:0 1px 0 var(--line);
   }
   .home-topbar{padding:22px 18px 14px;position:static;box-shadow:none;background:transparent;}
-  .app-title{font-family:'Noto Serif TC',serif;font-weight:700;font-size:28px;color:var(--ink);letter-spacing:.3px;position:relative;display:inline-block;}
+  .app-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:700;font-size:28px;color:var(--ink);letter-spacing:.3px;position:relative;display:inline-block;}
   .app-title::after{content:'';display:block;width:30px;height:3px;background:var(--accent);border-radius:2px;margin-top:7px;}
   .app-subtitle{font-size:12.5px;color:var(--ink-soft);margin-top:9px;}
   .topbar-actions{display:flex;gap:8px;}
   .icon-btn{width:40px;height:40px;border-radius:var(--radius-pill);border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);flex:0 0 auto;}
-  .topbar-mini{font-family:'Noto Serif TC',serif;font-size:15px;font-weight:600;color:var(--ink-soft);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .topbar-mini{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:15px;font-weight:600;color:var(--ink-soft);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .folder-title{display:flex;align-items:center;gap:7px;flex:1;justify-content:center;padding:7px 10px;border-radius:var(--radius-pill);}
   .folder-title-icon{font-size:18px;}
-  .folder-title-text{font-family:'Noto Serif TC',serif;font-weight:600;font-size:17px;}
+  .folder-title-text{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:600;font-size:17px;}
   .folder-title-edit{font-size:11px;opacity:.5;}
 
   /* Home */
@@ -101,7 +101,7 @@
   .book-card-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
   .book-card-scrim{position:absolute;inset:0;background:linear-gradient(to top, rgba(10,7,4,.88), rgba(10,7,4,.25) 60%, rgba(10,7,4,.05));z-index:0;}
   .book-card-text{position:relative;z-index:1;margin-top:26px;}
-  .book-card-name{font-family:'Noto Serif TC',serif;font-weight:600;font-size:13.5px;color:var(--ink);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .book-card-name{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:600;font-size:13.5px;color:var(--ink);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
   .book-card.has-cover .book-card-name{color:#fff;}
   .book-card-desc{font-size:10px;margin-top:3px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .book-card.has-cover .book-card-desc{color:rgba(255,255,255,.82);}
@@ -118,13 +118,43 @@
   .cover-pos-btn{width:100%;aspect-ratio:1;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink-faint);font-size:12px;display:flex;align-items:center;justify-content:center;}
   .cover-pos-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
 
+  /* Home layout styles */
+  .layout-magazine{grid-template-columns:repeat(2,1fr);gap:16px;}
+  .layout-magazine .book-card{aspect-ratio:4/3;border-radius:4px;box-shadow:0 1px 2px rgba(36,26,16,.08);border:none;padding:16px;}
+  .layout-magazine .book-card-name{font-size:16px;line-height:1.3;-webkit-line-clamp:3;}
+  .layout-magazine .book-card-desc{white-space:normal;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;margin-top:5px;}
+  .layout-magazine .book-card-count{display:none;}
+  .layout-magazine .book-card-scrim{background:linear-gradient(to top, rgba(10,7,4,.92), rgba(10,7,4,.1) 70%, rgba(10,7,4,0));}
+
+  .layout-gallery{grid-template-columns:repeat(2,1fr);gap:22px;}
+  .layout-gallery .book-card{aspect-ratio:1/1;border-radius:2px;box-shadow:none;border:none;padding:14px;}
+  .layout-gallery .book-card-scrim{background:linear-gradient(to top, rgba(10,7,4,.75), rgba(10,7,4,0) 55%);}
+  .layout-gallery .book-card-name{font-family:'Noto Sans TC',sans-serif;font-weight:500;font-size:11.5px;letter-spacing:.06em;-webkit-line-clamp:1;}
+  .layout-gallery .book-card-desc,.layout-gallery .book-card-count{display:none;}
+  .layout-gallery .book-card-cover-img{border-radius:2px;}
+
+  .layout-option-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 6px;border:none;background:none;border-top:1px solid var(--line);text-align:left;}
+  .layout-option-row:first-of-type{border-top:none;}
+  .layout-option-row.active .layout-option-name{color:var(--accent);}
+  .layout-option-preview{width:44px;height:44px;border-radius:8px;background:var(--bg-deep);flex:0 0 auto;display:grid;gap:2px;padding:5px;}
+  .layout-preview-library{grid-template-columns:repeat(3,1fr);}
+  .layout-preview-library span{background:var(--ink-faint);border-radius:1px;}
+  .layout-preview-magazine{grid-template-columns:repeat(2,1fr);}
+  .layout-preview-magazine span{background:var(--ink-faint);border-radius:1px;aspect-ratio:4/3;}
+  .layout-preview-gallery{grid-template-columns:repeat(2,1fr);gap:4px;}
+  .layout-preview-gallery span{background:var(--ink-faint);border-radius:1px;aspect-ratio:1/1;}
+  .layout-option-text{flex:1;display:flex;flex-direction:column;gap:2px;}
+  .layout-option-name{font-weight:600;font-size:14px;color:var(--ink);}
+  .layout-option-desc{font-size:11.5px;color:var(--ink-soft);}
+  .layout-option-check{color:var(--accent);font-size:15px;width:18px;text-align:center;}
+
   /* Empty state */
   .empty-state{text-align:center;padding:56px 24px 20px;}
   .empty-icon{
     width:64px;height:64px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);
     display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;
   }
-  .empty-title{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:600;color:var(--ink);}
+  .empty-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:17px;font-weight:600;color:var(--ink);}
   .empty-desc{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.7;max-width:280px;margin-left:auto;margin-right:auto;}
   .empty-cta{text-align:center;margin-top:16px;}
 
@@ -161,6 +191,10 @@
   /* Waterfall */
   .waterfall{column-count:2;column-gap:11px;margin-top:10px;}
   .img-card{break-inside:avoid;margin-bottom:11px;border-radius:var(--radius-card);overflow:hidden;position:relative;box-shadow:var(--shadow);background:var(--card);}
+  .img-card.selected{outline:3px solid var(--accent);outline-offset:-3px;}
+  .select-check{position:absolute;top:9px;right:9px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.85);border:2px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .select-action-bar{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);border-top:1px solid var(--line);padding:12px 18px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;z-index:15;box-shadow:0 -6px 20px rgba(36,26,16,.08);}
+  .select-count{flex:1;font-size:13px;color:var(--ink-soft);}
   .img-card img{width:100%;display:block;}
   .img-card-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(to top,rgba(15,10,5,.78),rgba(15,10,5,0));}
   .img-card-title{color:#fff;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -171,7 +205,7 @@
   /* Article overview grid */
   .article-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
   .article-card{background:var(--card);border-radius:var(--radius-sm);padding:13px 11px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:120px;}
-  .article-card-title{font-family:'Noto Serif TC',serif;font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.42;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+  .article-card-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.42;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
   .article-card-excerpt{font-size:10.5px;color:var(--ink-soft);margin-top:6px;line-height:1.55;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;flex:1;}
   .article-card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
   .article-card-meta .tag{font-size:9px;padding:2px 7px;}
@@ -205,7 +239,7 @@
 
   /* Reading / gallery */
   .reading-page,.gallery-page{padding:10px var(--reading-pad-x, 22px) 84px;}
-  .reading-title{font-family:'Noto Serif TC',serif;font-size:24px;font-weight:700;line-height:1.45;margin:8px 0 10px;}
+  .reading-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:24px;font-weight:700;line-height:1.45;margin:8px 0 10px;}
   .reading-meta{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
   .reading-date{font-size:12px;color:var(--ink-faint);}
   .reading-content{font-family:var(--reading-font-family, 'Noto Serif TC',serif);font-size:var(--reading-font-size, 17px);line-height:var(--reading-line-height, 2);color:var(--ink);white-space:pre-wrap;margin-top:18px;padding-bottom:20px;letter-spacing:.1px;}
@@ -255,7 +289,7 @@
   @keyframes sheetUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
   @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
   .sheet-close{position:absolute;top:16px;right:18px;width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-deep);color:var(--ink-soft);font-size:16px;}
-  .sheet-title{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin-bottom:16px;padding-right:30px;}
+  .sheet-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:19px;font-weight:700;margin-bottom:16px;padding-right:30px;}
   .modal-loading{padding:34px 0;text-align:center;color:var(--ink-soft);font-size:14px;}
   .field-label{display:block;font-size:12.5px;color:var(--ink-soft);margin:16px 0 7px;font-weight:600;}
   .text-input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:var(--radius-xs);padding:11px 13px;font-size:14.5px;color:var(--ink);outline:none;}
@@ -294,7 +328,7 @@
   .random-thumb{width:100px;height:100px;border-radius:var(--radius-card);margin:0 auto 14px;overflow:hidden;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:var(--shadow);}
   .random-thumb img{width:100%;height:100%;object-fit:cover;}
   .random-folder{font-size:12px;color:var(--ink-faint);}
-  .random-title{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin-top:5px;}
+  .random-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:19px;font-weight:700;margin-top:5px;}
   .tag-manager-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);}
   .tag-manager-row:first-of-type{border-top:none;}
   .tag-manager-row input{flex:1;}
@@ -336,6 +370,57 @@
     box-shadow:var(--shadow-lg);
   }
   #toast.show{opacity:1;transform:translate(-50%,0);}
+  /* ---------- App-wide layout style overrides ---------- */
+  /* Flatten card elevation for editorial/gallery modes across every page, not just home */
+  html[data-layout="magazine"] .article-card,
+  html[data-layout="magazine"] .result-row,
+  html[data-layout="magazine"] .settings-card,
+  html[data-layout="magazine"] .upload-thumb,
+  html[data-layout="magazine"] .img-card,
+  html[data-layout="magazine"] .random-thumb,
+  html[data-layout="magazine"] .icon-preview,
+  html[data-layout="gallery"] .article-card,
+  html[data-layout="gallery"] .result-row,
+  html[data-layout="gallery"] .settings-card,
+  html[data-layout="gallery"] .upload-thumb,
+  html[data-layout="gallery"] .img-card,
+  html[data-layout="gallery"] .random-thumb,
+  html[data-layout="gallery"] .icon-preview{
+    box-shadow:none; border:1px solid var(--line);
+  }
+  /* Topbar & bottom nav: hairline instead of soft shadow */
+  html[data-layout="magazine"] .topbar, html[data-layout="gallery"] .topbar{
+    box-shadow:none; border-bottom:1px solid var(--line);
+  }
+  html[data-layout="magazine"] .bottom-nav, html[data-layout="gallery"] .bottom-nav{
+    left:0; right:0; bottom:0; max-width:480px; border-radius:0; box-shadow:none; border-top:1px solid var(--line);
+    padding-bottom:calc(8px + env(safe-area-inset-bottom));
+  }
+  html[data-layout="magazine"] .fab, html[data-layout="gallery"] .fab{ border-radius:6px; box-shadow:none; border:1px solid rgba(255,255,255,.3); }
+  /* Buttons, chips, tabs: squared instead of pill-shaped */
+  html[data-layout="magazine"] .btn, html[data-layout="magazine"] .chip, html[data-layout="magazine"] .tab-btn,
+  html[data-layout="magazine"] .nav-item, html[data-layout="magazine"] .sort-chip, html[data-layout="magazine"] .theme-swatch,
+  html[data-layout="gallery"] .btn, html[data-layout="gallery"] .chip, html[data-layout="gallery"] .tab-btn,
+  html[data-layout="gallery"] .nav-item, html[data-layout="gallery"] .sort-chip{
+    border-radius:2px;
+  }
+  html[data-layout="gallery"] .theme-swatch{ border-radius:2px; }
+  html[data-layout="magazine"] .tab-switch, html[data-layout="gallery"] .tab-switch{ background:none; padding-left:18px; padding-right:18px; gap:0; }
+  html[data-layout="magazine"] .tab-btn, html[data-layout="gallery"] .tab-btn{ background:none; border-bottom:2px solid var(--line); border-radius:0; }
+  html[data-layout="magazine"] .tab-btn.active, html[data-layout="gallery"] .tab-btn.active{ background:none; box-shadow:none; border-bottom-color:var(--accent); color:var(--accent); }
+  /* Article grid: editorial single column vs. minimal flat list */
+  html[data-layout="magazine"] .article-grid{ grid-template-columns:1fr; gap:14px; }
+  html[data-layout="magazine"] .article-card{ padding:18px; }
+  html[data-layout="magazine"] .article-card-title{ font-size:16.5px; -webkit-line-clamp:2; }
+  html[data-layout="magazine"] .article-card-excerpt{ font-size:13px; -webkit-line-clamp:3; }
+  html[data-layout="gallery"] .article-grid{ grid-template-columns:1fr; gap:0; }
+  html[data-layout="gallery"] .article-card{ border-radius:0; border:none; border-top:1px solid var(--line); box-shadow:none; padding:16px 4px; }
+  html[data-layout="gallery"] .article-card:first-child{ border-top:none; }
+  /* Waterfall spacing */
+  html[data-layout="magazine"] .waterfall{ column-gap:16px; }
+  html[data-layout="gallery"] .waterfall{ column-gap:20px; }
+  html[data-layout="gallery"] .img-card{ border-radius:2px; margin-bottom:20px; }
+  /* Sheets/modals keep their elevation regardless of layout (functional chrome, not content) */
 </style>
 </head>
 <body>
@@ -359,6 +444,8 @@ let FOLDERS = [];
 const META_CACHE = {};
 let CURRENT_FILTER = { tags:[], favoriteOnly:false };
 let FOLDER_VIEW_CTX = null;
+let SELECT_MODE = false;
+let SELECTED_IDS = new Set();
 let LAST_VIEWED_FOLDER_ID = null;
 let DRAG_FOLDER_ID = null;
 let UPLOAD_QUEUE = [];
@@ -392,6 +479,7 @@ window.addEventListener('appinstalled', ()=>{
 let HOME_SORT_MODE = 'recent';
 let DEFAULT_LANDING = 'home';
 let READING_PREFS = { fontSize:'medium', lineHeight:'normal', font:'serif', width:'normal', imageFit:'fit' };
+let LAYOUT_STYLE = 'library';
 
 const DEFAULT_ICONS = ['📚','📖','🖼️','🎨','🌙','⭐','🌸','🍀','🕯️','💌','🎬','🍬','🌊','🗂️','🔥','🧵'];
 const THEME_BASE = {
@@ -407,6 +495,19 @@ const PALETTES = [
   { id:'mauve',    name:'梅紫', light:{'--accent':'#6B3E66','--accent-soft':'#EBDDE9'}, dark:{'--accent':'#CB9BC4','--accent-soft':'#3D2739'} }
 ];
 let THEME_STATE = { mode:'light', palette:0 };
+const LAYOUT_TOKENS = {
+  library:  { '--radius-xs':'10px', '--radius-sm':'14px', '--radius-card':'18px', '--radius-lg':'24px', '--heading-font':"'Noto Serif TC',serif" },
+  magazine: { '--radius-xs':'3px',  '--radius-sm':'3px',  '--radius-card':'3px',  '--radius-lg':'6px',  '--heading-font':"'Noto Serif TC',serif" },
+  gallery:  { '--radius-xs':'2px',  '--radius-sm':'2px',  '--radius-card':'2px',  '--radius-lg':'2px',  '--heading-font':"'Noto Sans TC',sans-serif" }
+};
+function applyLayoutStyle(style){
+  style = LAYOUT_TOKENS[style] ? style : 'library';
+  const root = document.documentElement;
+  const tokens = LAYOUT_TOKENS[style];
+  Object.keys(tokens).forEach(k=> root.style.setProperty(k, tokens[k]));
+  root.setAttribute('data-layout', style);
+  LAYOUT_STYLE = style;
+}
 
 /* ---------- Utilities ---------- */
 function esc(s){
@@ -737,7 +838,7 @@ async function applyAppIdentity(name, emoji){
 }
 async function loadSettings(){
   const raw = await storageGetRaw('settings');
-  const defaults = { mode:'light', palette:0, appName:'藏書閣', appIcon:'📚', homeSortMode:'recent', defaultLanding:'home',
+  const defaults = { mode:'light', palette:0, appName:'藏書閣', appIcon:'📚', homeSortMode:'recent', defaultLanding:'home', layoutStyle:'library',
     reading:{ fontSize:'medium', lineHeight:'normal', font:'serif', width:'normal', imageFit:'fit' } };
   let s = defaults;
   try{
@@ -751,6 +852,7 @@ async function loadSettings(){
   APP_ICON = s.appIcon || '📚';
   HOME_SORT_MODE = s.homeSortMode || 'recent';
   DEFAULT_LANDING = s.defaultLanding || 'home';
+  applyLayoutStyle(s.layoutStyle || 'library');
   READING_PREFS = s.reading;
   applyReadingPrefs(READING_PREFS);
   await applyAppIdentity(APP_NAME, APP_ICON);
@@ -758,7 +860,7 @@ async function loadSettings(){
 async function saveSettings(){
   await storageSetRaw('settings', JSON.stringify({
     mode:THEME_STATE.mode, palette:THEME_STATE.palette, appName:APP_NAME, appIcon:APP_ICON,
-    homeSortMode:HOME_SORT_MODE, defaultLanding:DEFAULT_LANDING, reading:READING_PREFS
+    homeSortMode:HOME_SORT_MODE, defaultLanding:DEFAULT_LANDING, layoutStyle:LAYOUT_STYLE, reading:READING_PREFS
   }));
 }
 function applyReadingPrefs(prefs){
@@ -916,7 +1018,7 @@ function bookCardHTML(f, count, i){
 function homeHTML(counts){
   const ordered = sortFoldersForHome(FOLDERS);
   const grid = FOLDERS.length
-    ? `<div class="folder-grid">${ordered.map((f,i)=>bookCardHTML(f, counts[f.id], i)).join('')}<div class="book-card add-card" data-act="go-new-folder"><div class="add-card-icon">＋</div><div class="add-card-label">新增資料夾</div></div></div>`
+    ? `<div class="folder-grid layout-${LAYOUT_STYLE}">${ordered.map((f,i)=>bookCardHTML(f, counts[f.id], i)).join('')}<div class="book-card add-card" data-act="go-new-folder"><div class="add-card-icon">＋</div><div class="add-card-label">新增資料夾</div></div></div>`
     : `${emptyStateHTML('還沒有任何資料夾','建立第一個資料夾，開始收藏喜歡的文章與圖片')}<div class="empty-cta"><button class="btn btn-primary" data-act="go-new-folder">建立資料夾</button></div>`;
   const dragHint = (HOME_SORT_MODE==='custom' && FOLDERS.length>1) ? `<div class="drag-hint">長按並拖曳卡片可以調整順序</div>` : '';
   return `
@@ -941,13 +1043,19 @@ function folderResultsHTML(folder, tab, meta){
   return tab==='images' ? waterfallHTML(folder, filtered) : articleListHTML(folder, filtered);
 }
 function waterfallHTML(folder, list){
-  return `<div class="waterfall">${list.map(m=>`
-    <div class="img-card" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
+  return `<div class="waterfall">${list.map(m=>{
+    const selected = SELECTED_IDS.has(m.id);
+    const clickAct = SELECT_MODE ? 'toggle-select-image' : 'open-item';
+    return `
+    <div class="img-card ${selected?'selected':''}" data-act="${clickAct}" data-folder="${folder.id}" data-id="${m.id}">
       <img src="${m.thumb||''}" loading="lazy"/>
-      ${m.favorite ? `<div class="fav-badge-mini">★</div>` : ''}
-      ${m.hasVideo ? `<div class="video-badge-mini">▶</div>` : ''}
-      ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
-    </div>`).join('')}</div>`;
+      ${SELECT_MODE ? `<div class="select-check">${selected?'✓':''}</div>` : `
+        ${m.favorite ? `<div class="fav-badge-mini">★</div>` : ''}
+        ${m.hasVideo ? `<div class="video-badge-mini">▶</div>` : ''}
+        ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
+      `}
+    </div>`;
+  }).join('')}</div>`;
 }
 function articleListHTML(folder, list){
   return `<div class="article-grid">${list.map(m=>`
@@ -957,10 +1065,20 @@ function articleListHTML(folder, list){
       ${m.tags && m.tags.length ? `<div class="article-card-meta">${tagsHTML(m.tags)}</div>` : ''}
     </div>`).join('')}</div>`;
 }
-function tagToolsRowHTML(folder){
+function tagToolsRowHTML(folder, tab){
+  const selectBtn = tab==='images' ? `<button type="button" class="tag-manage-btn" data-act="toggle-select-mode">${SELECT_MODE?'取消選取':'☑️ 選取'}</button>` : '';
   return `<div class="sort-row">
     <span class="tag-tools-label">依標籤篩選收藏</span>
+    ${selectBtn}
     <button type="button" class="tag-manage-btn" data-act="manage-tags" data-folder="${folder.id}">🏷️ 管理標籤</button>
+  </div>`;
+}
+function selectActionBarHTML(folder){
+  const count = SELECTED_IDS.size;
+  return `<div class="select-action-bar">
+    <span class="select-count">已選 ${count} 項</span>
+    <button type="button" class="btn btn-ghost-sm" data-act="select-all-images">全選</button>
+    <button type="button" class="btn btn-danger-outline" style="width:auto;margin:0;" data-act="delete-selected-images" ${count===0?'disabled':''}>🗑️ 刪除</button>
   </div>`;
 }
 function folderPageHTML(folder, tab, meta){
@@ -969,6 +1087,9 @@ function folderPageHTML(folder, tab, meta){
   const imageCount = meta.filter(m=>m.type==='image').length;
   const allTags = Array.from(new Set(typeList.flatMap(m=>m.tags||[]))).slice(0,24);
   const favChip = `<button type="button" class="chip filter-chip ${CURRENT_FILTER.favoriteOnly?'active':''}" data-act="filter-favorite">⭐ 只看收藏</button>`;
+  const bottomAction = (tab==='images' && SELECT_MODE)
+    ? selectActionBarHTML(folder)
+    : `<button class="fab" data-act="fab-add" data-folder="${folder.id}" data-tab="${tab}" aria-label="新增收藏">＋</button>`;
   return `
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
@@ -983,12 +1104,12 @@ function folderPageHTML(folder, tab, meta){
     <button class="tab-btn ${tab==='articles'?'active':''}" data-act="switch-tab" data-folder="${folder.id}" data-tab="articles">文章 <span class="tab-count">${articleCount}</span></button>
     <button class="tab-btn ${tab==='images'?'active':''}" data-act="switch-tab" data-folder="${folder.id}" data-tab="images">圖片 <span class="tab-count">${imageCount}</span></button>
   </div>
-  ${tagToolsRowHTML(folder)}
+  ${tagToolsRowHTML(folder, tab)}
   <div class="filter-bar">
     <div class="chip-scroll">${favChip}${allTags.length?tagFilterChipsHTML(allTags):''}</div>
   </div>
   <div id="folder-results" class="page-content">${folderResultsHTML(folder, tab, meta)}</div>
-  <button class="fab" data-act="fab-add" data-folder="${folder.id}" data-tab="${tab}" aria-label="新增收藏">＋</button>
+  ${bottomAction}
   `;
 }
 async function renderFolder(folderId, tab){
@@ -996,6 +1117,8 @@ async function renderFolder(folderId, tab){
   if(!folder){ location.hash='#/'; return; }
   if(!(CURRENT_FILTER._folderId===folderId && CURRENT_FILTER._tab===tab)){
     CURRENT_FILTER = { tags:[], favoriteOnly:false, _folderId:folderId, _tab:tab };
+    SELECT_MODE = false;
+    SELECTED_IDS = new Set();
   }
   if(LAST_VIEWED_FOLDER_ID !== folderId){
     LAST_VIEWED_FOLDER_ID = folderId;
@@ -1236,6 +1359,23 @@ async function saveTagManager(folderId){
   await rerenderCurrentFilterView();
   toast('標籤已更新');
 }
+async function deleteSelectedImages(){
+  if(SELECTED_IDS.size===0) return;
+  if(!FOLDER_VIEW_CTX) return;
+  const count = SELECTED_IDS.size;
+  if(!confirm('確定要刪除選取的 '+count+' 筆圖片收藏嗎？此動作無法復原。')) return;
+  const folderId = FOLDER_VIEW_CTX.folder.id;
+  const idsToDelete = new Set(SELECTED_IDS);
+  const meta = await getMeta(folderId);
+  const newMeta = meta.filter(m=>!idsToDelete.has(m.id));
+  const ok = await setMeta(folderId, newMeta);
+  if(!ok){ toast('刪除失敗，請再試一次'); return; }
+  for(const id of idsToDelete){ await deleteItemFull(folderId, id); }
+  SELECTED_IDS = new Set();
+  SELECT_MODE = false;
+  toast('已刪除 '+count+' 筆');
+  await route();
+}
 
 /* ---------- Settings ---------- */
 function themeSectionHTML(){
@@ -1421,6 +1561,28 @@ function installSectionHTML(){
   }
   return `<div class="settings-section-title">加入主畫面</div><div class="settings-card">${body}</div>`;
 }
+function layoutStyleSectionHTML(){
+  const options = [
+    { key:'library', label:'書庫風', desc:'直式書封＋書架排列，目前預設樣式' },
+    { key:'magazine', label:'雜誌風', desc:'橫幅大圖＋編輯感排版，適合搭配描述文字' },
+    { key:'gallery', label:'美術館風', desc:'方形留白構圖，極簡標籤式標題' }
+  ];
+  return `
+    <div class="settings-section-title">版面風格</div>
+    <div class="settings-card">
+      <p class="settings-desc" style="margin-bottom:14px;">改變首頁資料夾的整體排版與視覺風格。</p>
+      ${options.map(o=>`
+        <button type="button" class="layout-option-row ${LAYOUT_STYLE===o.key?'active':''}" data-act="set-layout-style" data-layout="${o.key}">
+          <span class="layout-option-preview layout-preview-${o.key}"><span></span><span></span><span></span><span></span></span>
+          <span class="layout-option-text">
+            <span class="layout-option-name">${o.label}</span>
+            <span class="layout-option-desc">${o.desc}</span>
+          </span>
+          <span class="layout-option-check">${LAYOUT_STYLE===o.key?'✓':''}</span>
+        </button>
+      `).join('')}
+    </div>`;
+}
 async function renderThemePage(){
   const app = document.getElementById('app');
   app.innerHTML = `<div class="modal-loading">載入中…</div>`;
@@ -1433,6 +1595,7 @@ async function renderThemePage(){
   </div>
   <div class="page-content settings-page">
     ${themeSectionHTML()}
+    ${layoutStyleSectionHTML()}
     ${appIdentitySectionHTML(iconPreviewUrl)}
     ${installSectionHTML()}
   </div>`;
@@ -1469,22 +1632,22 @@ function closeModal(){
 }
 
 /* ---------- Folder editor (full page, no modal) ---------- */
-const COVER_POSITIONS = [
-  {x:0,y:0},{x:50,y:0},{x:100,y:0},
-  {x:0,y:50},{x:50,y:50},{x:100,y:50},
-  {x:0,y:100},{x:50,y:100},{x:100,y:100}
-];
 function coverAdjustHTML(){
   return `
     <div class="cover-live-preview">
       <img src="${COVER_DRAFT}" style="object-position:${COVER_POSITION_DRAFT.x}% ${COVER_POSITION_DRAFT.y}%; transform:scale(${COVER_ZOOM_DRAFT/100});"/>
     </div>
     <div class="cover-adjust-row">
-      <label class="field-label" style="margin:0;">縮放</label>
+      <label class="field-label" style="margin:0;width:56px;">縮放</label>
       <input id="cover-zoom-input" type="range" min="100" max="250" step="5" value="${COVER_ZOOM_DRAFT}"/>
     </div>
-    <div class="cover-position-grid">
-      ${COVER_POSITIONS.map(p=>`<button type="button" class="cover-pos-btn ${COVER_POSITION_DRAFT.x===p.x&&COVER_POSITION_DRAFT.y===p.y?'active':''}" data-act="set-cover-position" data-x="${p.x}" data-y="${p.y}">●</button>`).join('')}
+    <div class="cover-adjust-row">
+      <label class="field-label" style="margin:0;width:56px;">水平位置</label>
+      <input id="cover-x-input" type="range" min="0" max="100" step="1" value="${COVER_POSITION_DRAFT.x}"/>
+    </div>
+    <div class="cover-adjust-row">
+      <label class="field-label" style="margin:0;width:56px;">垂直位置</label>
+      <input id="cover-y-input" type="range" min="0" max="100" step="1" value="${COVER_POSITION_DRAFT.y}"/>
     </div>
     <button type="button" class="btn btn-ghost-sm" style="width:100%;margin-top:10px;" data-act="remove-cover">移除底圖</button>
   `;
@@ -2193,11 +2356,6 @@ async function onAppClick(e){
       case 'pick-icon': pickIcon(el.dataset.icon); break;
       case 'pick-custom-icon': pickCustomIcon(); break;
       case 'remove-cover': removeCoverDraft(); break;
-      case 'set-cover-position': {
-        COVER_POSITION_DRAFT = { x:Number(el.dataset.x), y:Number(el.dataset.y) };
-        rerenderFolderEditor();
-        break;
-      }
       case 'save-article': await saveArticle(el.dataset.folder, el.dataset.id||null); break;
       case 'save-image-item': await saveImageItemFromModal(el.dataset.folder, el.dataset.id||null); break;
       case 'add-tag': addTagFromInput(); break;
@@ -2228,6 +2386,34 @@ async function onAppClick(e){
       case 'filter-favorite': toggleFavoriteFilter(); await rerenderCurrentFilterView(); break;
       case 'filter-tag': toggleTagFilter(el.dataset.tag); await rerenderCurrentFilterView(); break;
       case 'manage-tags': await openTagManager(el.dataset.folder); break;
+      case 'toggle-select-mode': {
+        SELECT_MODE = !SELECT_MODE;
+        SELECTED_IDS = new Set();
+        await rerenderCurrentFilterView();
+        break;
+      }
+      case 'toggle-select-image': {
+        const id = el.dataset.id;
+        if(SELECTED_IDS.has(id)) SELECTED_IDS.delete(id); else SELECTED_IDS.add(id);
+        el.classList.toggle('selected', SELECTED_IDS.has(id));
+        const checkEl = el.querySelector('.select-check');
+        if(checkEl) checkEl.textContent = SELECTED_IDS.has(id) ? '✓' : '';
+        const countEl = document.querySelector('.select-count');
+        if(countEl) countEl.textContent = '已選 '+SELECTED_IDS.size+' 項';
+        const delBtn = document.querySelector('[data-act="delete-selected-images"]');
+        if(delBtn) delBtn.disabled = SELECTED_IDS.size===0;
+        break;
+      }
+      case 'select-all-images': {
+        if(FOLDER_VIEW_CTX){
+          const typeList = FOLDER_VIEW_CTX.meta.filter(m=>m.type==='image');
+          const filtered = sortMeta(filterMeta(typeList, CURRENT_FILTER), 'newest');
+          filtered.forEach(m=> SELECTED_IDS.add(m.id));
+          await rerenderCurrentFilterView();
+        }
+        break;
+      }
+      case 'delete-selected-images': await deleteSelectedImages(); break;
       case 'tag-manager-clear': { const row = el.closest('.tag-manager-row'); if(row){ const inp = row.querySelector('input'); if(inp) inp.value=''; } break; }
       case 'save-tag-manager': await saveTagManager(el.dataset.folder); break;
       case 'toggle-text-tools': { const p = document.getElementById('text-tools-panel'); if(p) p.classList.toggle('open'); break; }
@@ -2237,6 +2423,7 @@ async function onAppClick(e){
       case 'replace-all': replaceAllInEditor(); break;
       case 'set-theme-mode': applyTheme(el.dataset.mode, THEME_STATE.palette); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
       case 'set-theme-palette': applyTheme(THEME_STATE.mode, Number(el.dataset.idx)); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
+      case 'set-layout-style': applyLayoutStyle(el.dataset.layout); await saveSettings(); await renderThemePage(); break;
       case 'set-app-icon': APP_ICON = el.dataset.icon; await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
       case 'save-app-name': {
         const inp = document.getElementById('app-name-input');
@@ -2347,6 +2534,14 @@ async function onAppChange(e){
   }
   if(e.target && e.target.id==='cover-zoom-input'){
     COVER_ZOOM_DRAFT = Number(e.target.value);
+    rerenderFolderEditor();
+  }
+  if(e.target && e.target.id==='cover-x-input'){
+    COVER_POSITION_DRAFT = { x:Number(e.target.value), y:COVER_POSITION_DRAFT.y };
+    rerenderFolderEditor();
+  }
+  if(e.target && e.target.id==='cover-y-input'){
+    COVER_POSITION_DRAFT = { x:COVER_POSITION_DRAFT.x, y:Number(e.target.value) };
     rerenderFolderEditor();
   }
   if(e.target && e.target.id==='folder-icon-file-input'){
