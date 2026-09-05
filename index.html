@@ -274,6 +274,7 @@
   .icon-opt img{width:100%;height:100%;object-fit:cover;border-radius:0;}
   .icon-opt-upload{font-size:17px;color:var(--ink-soft);}
   .upload-grid{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px;}
+  .upload-mode-row{display:flex;gap:8px;margin-top:8px;}
   .upload-thumb{width:78px;height:78px;border-radius:var(--radius-sm);overflow:hidden;position:relative;background:var(--bg-deep);box-shadow:var(--shadow);}
   .upload-thumb img{width:100%;height:100%;object-fit:cover;}
   .upload-loading{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);text-align:center;padding:4px;}
@@ -358,6 +359,7 @@ let FOLDER_VIEW_CTX = null;
 let LAST_VIEWED_FOLDER_ID = null;
 let DRAG_FOLDER_ID = null;
 let UPLOAD_QUEUE = [];
+let UPLOAD_MODE = 'group';
 let TAG_DRAFT = [];
 let EXISTING_TAGS_DRAFT = [];
 let FAVORITE_DRAFT = false;
@@ -897,7 +899,7 @@ function waterfallHTML(folder, list){
     <div class="img-card" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
       <img src="${m.thumb||''}" loading="lazy"/>
       <div class="img-card-overlay">
-        <div class="img-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||'未命名圖組')}</div>
+        <div class="img-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</div>
       </div>
       ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
     </div>`).join('')}</div>`;
@@ -979,6 +981,10 @@ async function renderItem(folderId, id){
   } else {
     const item = await getItem(folderId, id);
     app.innerHTML = imageViewHTML(folder, m, item);
+    const images = (item && item.images) || [];
+    if(images.length===1){
+      openLightbox(0);
+    }
   }
 }
 const EMBED_TOKEN_RE = /\[\[img:([a-zA-Z0-9]+)\]\]/g;
@@ -1022,7 +1028,7 @@ function imageViewHTML(folder, m, item){
     <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
   </div>
   <div class="gallery-page">
-    <h1 class="reading-title">${esc(m.title||'未命名圖組')}</h1>
+    <h1 class="reading-title">${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</h1>
     <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
     <div class="gallery-stack">${images.map((src,i)=>`<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><img class="gallery-img ${fitClass}" src="${src}" loading="lazy"/></div>`).join('')}</div>
@@ -1125,7 +1131,7 @@ function randomModalHTML(pick, isGlobal){
   <div class="random-card">
     <div class="random-thumb">${isImg && pick.thumb ? `<img src="${pick.thumb}"/>` : '<span>📄</span>'}</div>
     <div class="random-folder">${folderIconHTML(pick.folderIcon)} ${esc(pick.folderName)}</div>
-    <div class="random-title">${esc(pick.title || (isImg?'未命名圖組':'未命名文章'))}</div>
+    <div class="random-title">${esc(pick.title || (isImg? (pick.imageCount>1?'未命名圖組':'未命名圖片') : '未命名文章'))}</div>
     <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags)}${favoriteBadgeHTML(pick.favorite)}</div>
   </div>
   <div class="sheet-actions row">
@@ -1807,12 +1813,19 @@ function renderUploadPreview(){
 }
 function imageModalHTML(folderId, meta){
   const title = meta ? (meta.title||'') : '';
+  const modeToggle = !meta ? `
+   <div class="upload-mode-row">
+     <button type="button" class="chip filter-chip ${UPLOAD_MODE==='group'?'active':''}" data-upload-mode-btn data-act="set-upload-mode" data-mode="group">合併成一組</button>
+     <button type="button" class="chip filter-chip ${UPLOAD_MODE==='separate'?'active':''}" data-upload-mode-btn data-act="set-upload-mode" data-mode="separate">個別上傳</button>
+   </div>
+   <p class="settings-desc" style="margin:6px 0 0;">個別上傳：每張圖片各自成一筆收藏，會跟圖組一起顯示在圖片列表裡；點開單張圖片可以直接看大圖。</p>` : '';
   return `
    <div class="sheet-title">${meta? '編輯圖片收藏':'新增圖片'}</div>
    <label class="field-label">標題／說明（選填）</label>
    <input id="image-title-input" class="text-input" type="text" placeholder="這組圖片的名稱" value="${esc(title)}" maxlength="60"/>
    <label class="field-label">圖片</label>
-   <div id="upload-preview-grid" class="upload-grid">${uploadPreviewHTML()}</div>
+   ${modeToggle}
+   <div id="upload-preview-grid" class="upload-grid" style="margin-top:10px;">${uploadPreviewHTML()}</div>
    <label class="upload-btn" for="file-input">📷 選擇圖片（可多選）</label>
    <input id="file-input" type="file" accept="image/*" multiple style="display:none"/>
    <label class="field-label">標籤</label>
@@ -1828,7 +1841,7 @@ function imageModalHTML(folderId, meta){
 }
 function openImageModal(folderId, existingId){
   EDITING = existingId ? { type:'image', folderId, id:existingId } : null;
-  TAG_DRAFT = []; UPLOAD_QUEUE = []; PROCESSING = false;
+  TAG_DRAFT = []; UPLOAD_QUEUE = []; PROCESSING = false; UPLOAD_MODE = 'group';
   showModal(`<div class="modal-loading">載入中…</div>`);
   (async()=>{
     const meta = await getMeta(folderId);
@@ -1914,8 +1927,36 @@ async function handleFileSelect(files){
   renderUploadPreview();
 }
 function removeUploadPreview(idx){ UPLOAD_QUEUE.splice(idx,1); renderUploadPreview(); }
+async function saveImageItemFromModalSeparate(folderId){
+  const meta = await getMeta(folderId);
+  const newArr = meta.slice();
+  const now = Date.now();
+  const pending = UPLOAD_QUEUE.map((u,i)=>({
+    id: uid(),
+    full: u.full,
+    thumb: u.thumb || u.full,
+    offset: i
+  }));
+  pending.forEach(p=>{
+    newArr.push({ id:p.id, folderId, type:'image', title:'', tags:[].concat(TAG_DRAFT), favorite:false, thumb:p.thumb, imageCount:1, createdAt: now+p.offset, updatedAt: now+p.offset });
+  });
+  const metaOk = await setMeta(folderId, newArr);
+  if(!metaOk) return;
+  let failCount = 0;
+  for(const p of pending){
+    const ok = await setItem(folderId, p.id, { images:[p.full] });
+    if(!ok) failCount++;
+  }
+  closeModal();
+  await route();
+  toast(failCount>0 ? ('已新增，但 '+failCount+' 張圖片儲存失敗') : ('已新增 '+pending.length+' 張圖片'));
+}
 async function saveImageItemFromModal(folderId, existingId){
   if(UPLOAD_QUEUE.length===0){ toast('請至少上傳一張圖片'); return; }
+  if(!existingId && UPLOAD_MODE==='separate'){
+    await saveImageItemFromModalSeparate(folderId);
+    return;
+  }
   const titleInput = document.getElementById('image-title-input');
   const title = titleInput ? titleInput.value.trim() : '';
   const now = Date.now();
@@ -1993,6 +2034,11 @@ async function onAppClick(e){
       case 'lightbox-prev': lightboxNav(-1); break;
       case 'lightbox-next': lightboxNav(1); break;
       case 'remove-upload-preview': removeUploadPreview(Number(el.dataset.idx)); break;
+      case 'set-upload-mode': {
+        UPLOAD_MODE = el.dataset.mode;
+        document.querySelectorAll('[data-upload-mode-btn]').forEach(btn=> btn.classList.toggle('active', btn.dataset.mode===UPLOAD_MODE));
+        break;
+      }
       case 'export-backup': await exportBackup(); break;
       case 'connect-cloud': await connectCloudSync(); break;
       case 'disconnect-cloud': await disconnectCloudSync(); break;
