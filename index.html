@@ -167,6 +167,7 @@
   .img-card-title{color:#fff;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .img-count{position:absolute;top:9px;right:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;padding:2px 8px;border-radius:var(--radius-pill);backdrop-filter:blur(2px);}
   .video-badge-mini{position:absolute;top:9px;left:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+  .fav-badge-mini{position:absolute;bottom:9px;left:9px;background:rgba(15,10,5,.55);color:var(--gold);font-size:13px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
 
   /* Article overview grid */
   .article-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
@@ -941,9 +942,7 @@ function waterfallHTML(folder, list){
   return `<div class="waterfall">${list.map(m=>`
     <div class="img-card" data-act="open-item" data-folder="${folder.id}" data-id="${m.id}">
       <img src="${m.thumb||''}" loading="lazy"/>
-      <div class="img-card-overlay">
-        <div class="img-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</div>
-      </div>
+      ${m.favorite ? `<div class="fav-badge-mini">★</div>` : ''}
       ${m.hasVideo ? `<div class="video-badge-mini">▶</div>` : ''}
       ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
     </div>`).join('')}</div>`;
@@ -1072,8 +1071,7 @@ function imageViewHTML(folder, m, item){
     <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
   </div>
   <div class="gallery-page">
-    <h1 class="reading-title">${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</h1>
-    <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
+    <div class="reading-meta" style="margin-top:6px;">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
     <div class="gallery-stack">${media.map((med,i)=> med.kind==='video'
       ? `<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><video class="gallery-img ${fitClass}" src="${med.src}" muted playsinline preload="metadata"></video><div class="video-badge">▶ 影片</div></div>`
@@ -1181,7 +1179,7 @@ function randomModalHTML(pick, isGlobal){
   <div class="random-card">
     <div class="random-thumb">${isImg && pick.thumb ? `<img src="${pick.thumb}"/>` : '<span>📄</span>'}</div>
     <div class="random-folder">${folderIconHTML(pick.folderIcon)} ${esc(pick.folderName)}</div>
-    <div class="random-title">${esc(pick.title || (isImg? (pick.imageCount>1?'未命名圖組':'未命名圖片') : '未命名文章'))}</div>
+    ${isImg ? '' : `<div class="random-title">${esc(pick.title||'未命名文章')}</div>`}
     <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags)}${favoriteBadgeHTML(pick.favorite)}</div>
   </div>
   <div class="sheet-actions row">
@@ -1862,7 +1860,6 @@ function renderUploadPreview(){
   if(btn) btn.disabled = PROCESSING;
 }
 function imageModalHTML(folderId, meta){
-  const title = meta ? (meta.title||'') : '';
   const modeToggle = !meta ? `
    <div class="upload-mode-row">
      <button type="button" class="chip filter-chip ${UPLOAD_MODE==='group'?'active':''}" data-upload-mode-btn data-act="set-upload-mode" data-mode="group">合併成一組</button>
@@ -1871,8 +1868,6 @@ function imageModalHTML(folderId, meta){
    <p class="settings-desc" style="margin:6px 0 0;">個別上傳：每張圖片各自成一筆收藏，會跟圖組一起顯示在圖片列表裡；點開單張圖片可以直接看大圖。</p>` : '';
   return `
    <div class="sheet-title">${meta? '編輯圖片收藏':'新增圖片'}</div>
-   <label class="field-label">標題／說明（選填）</label>
-   <input id="image-title-input" class="text-input" type="text" placeholder="這組圖片的名稱" value="${esc(title)}" maxlength="60"/>
    <label class="field-label">圖片</label>
    ${modeToggle}
    <div id="upload-preview-grid" class="upload-grid" style="margin-top:10px;">${uploadPreviewHTML()}</div>
@@ -2115,8 +2110,6 @@ async function saveImageItemFromModal(folderId, existingId){
     await saveImageItemFromModalSeparate(folderId);
     return;
   }
-  const titleInput = document.getElementById('image-title-input');
-  const title = titleInput ? titleInput.value.trim() : '';
   const now = Date.now();
   const media = UPLOAD_QUEUE.map(u=>({ src:u.full, kind:u.kind||'image' }));
   const fingerprints = UPLOAD_QUEUE.map(u=>u.fingerprint).filter(Boolean);
@@ -2124,7 +2117,7 @@ async function saveImageItemFromModal(folderId, existingId){
   if(existingId){
     const meta = await getMeta(folderId);
     const m = meta.find(x=>x.id===existingId);
-    if(m){ m.title=title; m.tags=[].concat(TAG_DRAFT); m.thumb=thumb; m.imageCount=media.length; m.hasVideo=media.some(x=>x.kind==='video'); m.fingerprints=fingerprints; m.updatedAt=now; }
+    if(m){ m.tags=[].concat(TAG_DRAFT); m.thumb=thumb; m.imageCount=media.length; m.hasVideo=media.some(x=>x.kind==='video'); m.fingerprints=fingerprints; m.updatedAt=now; }
     const metaOk = await setMeta(folderId, meta);
     if(!metaOk) return;
     const itemOk = await setItem(folderId, existingId, { media });
@@ -2133,7 +2126,7 @@ async function saveImageItemFromModal(folderId, existingId){
     const meta = await getMeta(folderId);
     const newArr = meta.slice();
     const id = uid();
-    newArr.push({ id, folderId, type:'image', title, tags:[].concat(TAG_DRAFT), thumb, imageCount:media.length, hasVideo:media.some(x=>x.kind==='video'), fingerprints, createdAt:now, updatedAt:now });
+    newArr.push({ id, folderId, type:'image', tags:[].concat(TAG_DRAFT), thumb, imageCount:media.length, hasVideo:media.some(x=>x.kind==='video'), fingerprints, createdAt:now, updatedAt:now });
     const metaOk = await setMeta(folderId, newArr);
     if(!metaOk) return;
     const itemOk = await setItem(folderId, id, { media });
