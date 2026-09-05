@@ -166,6 +166,7 @@
   .img-card-overlay{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(to top,rgba(15,10,5,.78),rgba(15,10,5,0));}
   .img-card-title{color:#fff;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .img-count{position:absolute;top:9px;right:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;padding:2px 8px;border-radius:var(--radius-pill);backdrop-filter:blur(2px);}
+  .video-badge-mini{position:absolute;top:9px;left:9px;background:rgba(15,10,5,.55);color:#fff;font-size:11px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
 
   /* Article overview grid */
   .article-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
@@ -210,8 +211,9 @@
   .reading-content{font-family:var(--reading-font-family, 'Noto Serif TC',serif);font-size:var(--reading-font-size, 17px);line-height:var(--reading-line-height, 2);color:var(--ink);white-space:pre-wrap;margin-top:18px;padding-bottom:20px;letter-spacing:.1px;}
   .reading-embed-img{display:block;width:100%;border-radius:var(--radius-card);margin:18px 0;box-shadow:var(--shadow);}
   .gallery-stack{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
-  .gallery-img-wrap{border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow);}
+  .gallery-img-wrap{border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow);position:relative;}
   .gallery-img{width:100%;display:block;}
+  .video-badge{position:absolute;bottom:10px;left:10px;background:rgba(15,10,5,.65);color:#fff;font-size:11px;padding:3px 9px;border-radius:var(--radius-pill);backdrop-filter:blur(2px);}
   .gallery-img.fit-original{width:auto;max-width:100%;margin:0 auto;}
 
   /* Editor page (articles) */
@@ -276,6 +278,7 @@
   .upload-grid{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px;}
   .upload-mode-row{display:flex;gap:8px;margin-top:8px;}
   .upload-thumb{width:78px;height:78px;border-radius:var(--radius-sm);overflow:hidden;position:relative;background:var(--bg-deep);box-shadow:var(--shadow);}
+  .video-badge-sm{position:absolute;bottom:3px;left:3px;background:rgba(15,10,5,.65);color:#fff;font-size:10px;padding:1px 5px;border-radius:6px;}
   .upload-thumb img{width:100%;height:100%;object-fit:cover;}
   .upload-loading{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-soft);text-align:center;padding:4px;}
   .upload-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(15,10,5,.6);color:#fff;font-size:12px;line-height:1;}
@@ -360,6 +363,7 @@ let LAST_VIEWED_FOLDER_ID = null;
 let DRAG_FOLDER_ID = null;
 let UPLOAD_QUEUE = [];
 let UPLOAD_MODE = 'group';
+let EXISTING_IMAGE_FINGERPRINTS = new Set();
 let TAG_DRAFT = [];
 let EXISTING_TAGS_DRAFT = [];
 let FAVORITE_DRAFT = false;
@@ -940,6 +944,7 @@ function waterfallHTML(folder, list){
       <div class="img-card-overlay">
         <div class="img-card-title">${m.favorite?'<span class="fav-star">★</span>':''}${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</div>
       </div>
+      ${m.hasVideo ? `<div class="video-badge-mini">▶</div>` : ''}
       ${m.imageCount>1 ? `<div class="img-count">×${m.imageCount}</div>` : ''}
     </div>`).join('')}</div>`;
 }
@@ -1020,8 +1025,8 @@ async function renderItem(folderId, id){
   } else {
     const item = await getItem(folderId, id);
     app.innerHTML = imageViewHTML(folder, m, item);
-    const images = (item && item.images) || [];
-    if(images.length===1){
+    const media = normalizeMedia(item);
+    if(media.length===1){
       openLightbox(0);
     }
   }
@@ -1057,8 +1062,8 @@ function articleReadHTML(folder, m, content){
   </div>`;
 }
 function imageViewHTML(folder, m, item){
-  const images = (item && item.images) || [];
-  LIGHTBOX_IMAGES = images;
+  const media = normalizeMedia(item);
+  LIGHTBOX_IMAGES = media;
   const fitClass = (READING_PREFS.imageFit==='original') ? 'fit-original' : '';
   return `
   <div class="topbar">
@@ -1070,7 +1075,10 @@ function imageViewHTML(folder, m, item){
     <h1 class="reading-title">${esc(m.title||(m.imageCount>1?'未命名圖組':'未命名圖片'))}</h1>
     <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
-    <div class="gallery-stack">${images.map((src,i)=>`<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><img class="gallery-img ${fitClass}" src="${src}" loading="lazy"/></div>`).join('')}</div>
+    <div class="gallery-stack">${media.map((med,i)=> med.kind==='video'
+      ? `<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><video class="gallery-img ${fitClass}" src="${med.src}" muted playsinline preload="metadata"></video><div class="video-badge">▶ 影片</div></div>`
+      : `<div class="gallery-img-wrap" data-act="open-lightbox" data-idx="${i}"><img class="gallery-img ${fitClass}" src="${med.src}" loading="lazy"/></div>`
+    ).join('')}</div>
   </div>`;
 }
 async function openItemActionSheet(folderId, id){
@@ -1120,9 +1128,12 @@ function openLightbox(idx){ LIGHTBOX_IDX = idx; renderLightbox(); }
 function renderLightbox(){
   const root = document.getElementById('overlay-root');
   const multi = LIGHTBOX_IMAGES.length > 1;
+  const current = LIGHTBOX_IMAGES[LIGHTBOX_IDX];
+  const isVideo = current && current.kind==='video';
+  const src = current ? current.src : '';
   root.innerHTML = `<div class="lightbox" data-act="lightbox-close">
     <button class="lb-close" data-act="lightbox-close" aria-label="關閉">×</button>
-    <img class="lb-img" src="${LIGHTBOX_IMAGES[LIGHTBOX_IDX]}"/>
+    ${isVideo ? `<video class="lb-img" src="${src}" controls autoplay playsinline></video>` : `<img class="lb-img" src="${src}"/>`}
     ${multi? `<button class="lb-nav lb-prev" data-act="lightbox-prev" aria-label="上一張">‹</button><button class="lb-nav lb-next" data-act="lightbox-next" aria-label="下一張">›</button><div class="lb-count">${LIGHTBOX_IDX+1} / ${LIGHTBOX_IMAGES.length}</div>` : ''}
   </div>`;
   const img = root.querySelector('.lb-img');
@@ -1840,7 +1851,7 @@ async function handleBulkImportFiles(files, folderId){
 
 /* ---------- Image modal (upload sheet) ---------- */
 function uploadPreviewHTML(){
-  let html = UPLOAD_QUEUE.map((u,i)=>`<div class="upload-thumb"><img src="${u.thumb||u.full}"/><button type="button" class="upload-remove" data-act="remove-upload-preview" data-idx="${i}" aria-label="移除">×</button></div>`).join('');
+  let html = UPLOAD_QUEUE.map((u,i)=>`<div class="upload-thumb"><img src="${u.thumb||u.full}"/>${u.kind==='video'?'<span class="video-badge-sm">🎬</span>':''}<button type="button" class="upload-remove" data-act="remove-upload-preview" data-idx="${i}" aria-label="移除">×</button></div>`).join('');
   if(PROCESSING) html += `<div class="upload-thumb upload-loading">處理中…</div>`;
   return html;
 }
@@ -1865,8 +1876,8 @@ function imageModalHTML(folderId, meta){
    <label class="field-label">圖片</label>
    ${modeToggle}
    <div id="upload-preview-grid" class="upload-grid" style="margin-top:10px;">${uploadPreviewHTML()}</div>
-   <label class="upload-btn" for="file-input">📷 選擇圖片（可多選）</label>
-   <input id="file-input" type="file" accept="image/*" multiple style="display:none"/>
+   <label class="upload-btn" for="file-input">📷 選擇圖片或影片（可多選）</label>
+   <input id="file-input" type="file" accept="image/*,video/*" multiple style="display:none"/>
    <label class="field-label">標籤</label>
    <div class="tag-row">
      <input id="tag-input" class="text-input tag-input" type="text" placeholder="輸入標籤後按 Enter" maxlength="16"/>
@@ -1885,16 +1896,100 @@ function openImageModal(folderId, existingId){
   (async()=>{
     const meta = await getMeta(folderId);
     EXISTING_TAGS_DRAFT = Array.from(new Set(meta.flatMap(x=>x.tags||[]))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    EXISTING_IMAGE_FINGERPRINTS = new Set(meta.filter(x=>x.type==='image').flatMap(x=>x.fingerprints||[]));
     let m = null, item = null;
     if(existingId){
       m = meta.find(x=>x.id===existingId);
       item = await getItem(folderId, existingId);
       TAG_DRAFT = m ? [].concat(m.tags||[]) : [];
-      UPLOAD_QUEUE = (item && item.images) ? item.images.map(img=>({ full:img, thumb:img })) : [];
+      const media = normalizeMedia(item);
+      UPLOAD_QUEUE = await Promise.all(media.map(async med=> ({
+        full: med.src,
+        thumb: med.kind==='video' ? await captureVideoFrameFromSrc(med.src) : med.src,
+        kind: med.kind
+      })));
     }
     showModal(imageModalHTML(folderId, m));
     bindTagInputEnter();
   })();
+}
+async function computeFileFingerprint(file){
+  try{
+    const buf = await file.arrayBuffer();
+    const view = new Uint8Array(buf);
+    let hash = 0x811c9dc5;
+    for(let i=0;i<view.length;i++){
+      hash ^= view[i];
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash>>>0).toString(16)+'_'+file.size;
+  }catch(e){ return file.name+'_'+file.size; }
+}
+function fileToDataURL(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result);
+    reader.onerror = ()=> reject(new Error('file read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+function normalizeMedia(item){
+  if(!item) return [];
+  if(Array.isArray(item.media)) return item.media;
+  if(Array.isArray(item.images)) return item.images.map(src=>({ src, kind:'image' }));
+  return [];
+}
+function generateVideoPlaceholderThumb(){
+  const canvas = document.createElement('canvas');
+  canvas.width = 320; canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#2b2b2b';
+  ctx.fillRect(0,0,320,320);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.beginPath();
+  ctx.moveTo(128,108); ctx.lineTo(128,212); ctx.lineTo(212,160); ctx.closePath();
+  ctx.fill();
+  return canvas.toDataURL('image/jpeg', 0.7);
+}
+function captureVideoFrameFromSrc(src){
+  return new Promise((resolve)=>{
+    const video = document.createElement('video');
+    video.muted = true; video.playsInline = true; video.preload = 'auto';
+    let settled = false;
+    const fallback = ()=>{ if(settled) return; settled = true; resolve(generateVideoPlaceholderThumb()); };
+    const timeout = setTimeout(fallback, 4000);
+    video.addEventListener('loadedmetadata', ()=>{
+      try{ video.currentTime = Math.min(0.5, (video.duration||1)/2); }
+      catch(e){ fallback(); }
+    });
+    video.addEventListener('seeked', ()=>{
+      if(settled) return;
+      try{
+        const maxDim = 320;
+        let w = video.videoWidth, h = video.videoHeight;
+        if(!w || !h){ fallback(); return; }
+        if(w > h){ if(w > maxDim){ h = Math.round(h*maxDim/w); w = maxDim; } }
+        else { if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
+        settled = true; clearTimeout(timeout);
+        resolve(canvas.toDataURL('image/jpeg', 0.65));
+      }catch(e){ fallback(); }
+    });
+    video.addEventListener('error', fallback);
+    video.src = src;
+    video.load();
+  });
+}
+async function generateVideoFrameThumbFromFile(file){
+  let url;
+  try{ url = URL.createObjectURL(file); }
+  catch(e){ return generateVideoPlaceholderThumb(); }
+  const result = await captureVideoFrameFromSrc(url);
+  try{ URL.revokeObjectURL(url); }catch(e){}
+  return result;
 }
 function fileToSquareDataURL(file, size, quality){
   return new Promise((resolve, reject)=>{
@@ -1953,19 +2048,41 @@ function fileToResizedDataURL(file, maxDim, quality, targetBytes){
 async function handleFileSelect(files){
   if(!files || !files.length) return;
   PROCESSING = true; renderUploadPreview();
+  let duplicateCount = 0, skippedTooBig = 0;
   for(const file of Array.from(files)){
     try{
-      const results = await Promise.all([
-        fileToResizedDataURL(file, 1000, 0.72, 650*1024),
-        fileToResizedDataURL(file, 320, 0.6, 70*1024)
-      ]);
-      UPLOAD_QUEUE.push({ full:results[0], thumb:results[1] });
-    }catch(e){ toast('有一張圖片處理失敗'); }
+      const isVideo = file.type && file.type.indexOf('video/')===0;
+      if(isVideo){
+        const cap = FIRESTORE_DB ? 700*1024 : (USE_BRIDGE ? 4.5*1024*1024 : 30*1024*1024);
+        if(file.size > cap){ skippedTooBig++; continue; }
+        const fingerprint = await computeFileFingerprint(file);
+        if(EXISTING_IMAGE_FINGERPRINTS.has(fingerprint)){ duplicateCount++; continue; }
+        const dataUrl = await fileToDataURL(file);
+        const thumb = await generateVideoFrameThumbFromFile(file);
+        UPLOAD_QUEUE.push({ full:dataUrl, thumb, fingerprint, kind:'video' });
+        EXISTING_IMAGE_FINGERPRINTS.add(fingerprint);
+      } else {
+        const fingerprint = await computeFileFingerprint(file);
+        if(EXISTING_IMAGE_FINGERPRINTS.has(fingerprint)){ duplicateCount++; continue; }
+        const results = await Promise.all([
+          fileToResizedDataURL(file, 1000, 0.72, 650*1024),
+          fileToResizedDataURL(file, 320, 0.6, 70*1024)
+        ]);
+        UPLOAD_QUEUE.push({ full:results[0], thumb:results[1], fingerprint, kind:'image' });
+        EXISTING_IMAGE_FINGERPRINTS.add(fingerprint);
+      }
+    }catch(e){ toast('有一個檔案處理失敗'); }
   }
   PROCESSING = false;
   renderUploadPreview();
+  if(skippedTooBig>0) toast('有 '+skippedTooBig+' 個影片超過目前儲存方式的大小上限，已略過');
+  if(duplicateCount>0) toast('已略過 '+duplicateCount+' 個重複檔案，避免佔用兩份空間');
 }
-function removeUploadPreview(idx){ UPLOAD_QUEUE.splice(idx,1); renderUploadPreview(); }
+function removeUploadPreview(idx){
+  const removed = UPLOAD_QUEUE.splice(idx,1)[0];
+  if(removed && removed.fingerprint) EXISTING_IMAGE_FINGERPRINTS.delete(removed.fingerprint);
+  renderUploadPreview();
+}
 async function saveImageItemFromModalSeparate(folderId){
   const meta = await getMeta(folderId);
   const newArr = meta.slice();
@@ -1974,24 +2091,26 @@ async function saveImageItemFromModalSeparate(folderId){
     id: uid(),
     full: u.full,
     thumb: u.thumb || u.full,
+    kind: u.kind || 'image',
+    fingerprint: u.fingerprint,
     offset: i
   }));
   pending.forEach(p=>{
-    newArr.push({ id:p.id, folderId, type:'image', title:'', tags:[].concat(TAG_DRAFT), favorite:false, thumb:p.thumb, imageCount:1, createdAt: now+p.offset, updatedAt: now+p.offset });
+    newArr.push({ id:p.id, folderId, type:'image', title:'', tags:[].concat(TAG_DRAFT), favorite:false, thumb:p.thumb, imageCount:1, hasVideo:p.kind==='video', fingerprints:[p.fingerprint].filter(Boolean), createdAt: now+p.offset, updatedAt: now+p.offset });
   });
   const metaOk = await setMeta(folderId, newArr);
   if(!metaOk) return;
   let failCount = 0;
   for(const p of pending){
-    const ok = await setItem(folderId, p.id, { images:[p.full] });
+    const ok = await setItem(folderId, p.id, { media:[{ src:p.full, kind:p.kind }] });
     if(!ok) failCount++;
   }
   closeModal();
   await route();
-  toast(failCount>0 ? ('已新增，但 '+failCount+' 張圖片儲存失敗') : ('已新增 '+pending.length+' 張圖片'));
+  toast(failCount>0 ? ('已新增，但 '+failCount+' 個檔案儲存失敗') : ('已新增 '+pending.length+' 個檔案'));
 }
 async function saveImageItemFromModal(folderId, existingId){
-  if(UPLOAD_QUEUE.length===0){ toast('請至少上傳一張圖片'); return; }
+  if(UPLOAD_QUEUE.length===0){ toast('請至少上傳一張圖片或影片'); return; }
   if(!existingId && UPLOAD_MODE==='separate'){
     await saveImageItemFromModalSeparate(folderId);
     return;
@@ -1999,24 +2118,25 @@ async function saveImageItemFromModal(folderId, existingId){
   const titleInput = document.getElementById('image-title-input');
   const title = titleInput ? titleInput.value.trim() : '';
   const now = Date.now();
-  const images = UPLOAD_QUEUE.map(u=>u.full);
+  const media = UPLOAD_QUEUE.map(u=>({ src:u.full, kind:u.kind||'image' }));
+  const fingerprints = UPLOAD_QUEUE.map(u=>u.fingerprint).filter(Boolean);
   const thumb = UPLOAD_QUEUE[0].thumb || UPLOAD_QUEUE[0].full;
   if(existingId){
     const meta = await getMeta(folderId);
     const m = meta.find(x=>x.id===existingId);
-    if(m){ m.title=title; m.tags=[].concat(TAG_DRAFT); m.thumb=thumb; m.imageCount=images.length; m.updatedAt=now; }
+    if(m){ m.title=title; m.tags=[].concat(TAG_DRAFT); m.thumb=thumb; m.imageCount=media.length; m.hasVideo=media.some(x=>x.kind==='video'); m.fingerprints=fingerprints; m.updatedAt=now; }
     const metaOk = await setMeta(folderId, meta);
     if(!metaOk) return;
-    const itemOk = await setItem(folderId, existingId, { images });
+    const itemOk = await setItem(folderId, existingId, { media });
     if(!itemOk) return;
   } else {
     const meta = await getMeta(folderId);
     const newArr = meta.slice();
     const id = uid();
-    newArr.push({ id, folderId, type:'image', title, tags:[].concat(TAG_DRAFT), thumb, imageCount:images.length, createdAt:now, updatedAt:now });
+    newArr.push({ id, folderId, type:'image', title, tags:[].concat(TAG_DRAFT), thumb, imageCount:media.length, hasVideo:media.some(x=>x.kind==='video'), fingerprints, createdAt:now, updatedAt:now });
     const metaOk = await setMeta(folderId, newArr);
     if(!metaOk) return;
-    const itemOk = await setItem(folderId, id, { images });
+    const itemOk = await setItem(folderId, id, { media });
     if(!itemOk) return;
   }
   closeModal();
