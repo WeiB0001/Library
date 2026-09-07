@@ -57,12 +57,13 @@
   /* Shared tactile interaction: gentle press feedback everywhere */
   .book-card,.img-card,.article-card,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
   .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
-  .tag-manage-btn,.add-card,.layout-option-row{
+  .tag-manage-btn,.add-card,.layout-option-row,.tag-color-indicator,.tag-color-dot{
     transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
   }
   .book-card:active,.img-card:active,.article-card:active,.chip:active,.tab-btn:active,
   .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
-  .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active,.layout-option-row:active{
+  .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active,.layout-option-row:active,
+  .tag-color-indicator:active,.tag-color-dot:active{
     transform:scale(.96);
   }
 
@@ -333,8 +334,10 @@
   .tag-manager-row:first-of-type{border-top:none;}
   .tag-manager-row input{flex:1;}
   .tag-manager-clear{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-deep);color:var(--danger);font-size:14px;flex:0 0 auto;}
-  .tag-color-row{display:flex;gap:8px;padding:2px 0 10px;}
+  .tag-color-row{display:none;gap:8px;padding:2px 0 10px;flex-wrap:wrap;}
+  .tag-color-row.open{display:flex;}
   .tag-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid transparent;flex:0 0 auto;}
+  .tag-color-indicator{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;}
   .tag-color-dot.active{border-color:var(--ink);}
 
   /* Lightbox */
@@ -718,12 +721,50 @@ async function storageDeleteRaw(key){
   }catch(e){ /* ignore missing key */ }
 }
 
+let FOLDER_PERSIST_SNAPSHOT = {};
 async function loadFolders(){
-  const raw = await storageGetRaw('folders');
-  try{ FOLDERS = raw ? JSON.parse(raw) : []; }catch(e){ FOLDERS = []; }
+  const idxRaw = await storageGetRaw('folders');
+  let idxParsed = [];
+  try{ idxParsed = idxRaw ? JSON.parse(idxRaw) : []; }catch(e){ idxParsed = []; }
+  if(idxParsed.length && typeof idxParsed[0]==='object'){
+    /* legacy format: all folders (including cover images) stored as one blob.
+       Keep working immediately, migrate to per-folder docs in the background. */
+    FOLDERS = idxParsed;
+    FOLDER_PERSIST_SNAPSHOT = {};
+    FOLDERS.forEach(f=> FOLDER_PERSIST_SNAPSHOT[f.id] = JSON.stringify(f));
+    migrateFoldersToPerItem(idxParsed);
+    return;
+  }
+  const ids = idxParsed;
+  const items = await Promise.all(ids.map(async id=>{
+    const raw = await storageGetRaw('folderitem_'+id);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }));
+  FOLDERS = items.filter(Boolean);
+  FOLDER_PERSIST_SNAPSHOT = {};
+  FOLDERS.forEach(f=> FOLDER_PERSIST_SNAPSHOT[f.id] = JSON.stringify(f));
+}
+async function migrateFoldersToPerItem(arr){
+  try{
+    await Promise.all(arr.map(f=> storageSetRaw('folderitem_'+f.id, JSON.stringify(f))));
+    await storageSetRaw('folders', JSON.stringify(arr.map(f=>f.id)));
+  }catch(e){ /* best-effort; will just retry next load */ }
 }
 async function persistFolders(){
-  return await storageSetRaw('folders', JSON.stringify(FOLDERS));
+  const currentIds = FOLDERS.map(f=>f.id);
+  const changed = FOLDERS.filter(f=> FOLDER_PERSIST_SNAPSHOT[f.id] !== JSON.stringify(f));
+  const removedIds = Object.keys(FOLDER_PERSIST_SNAPSHOT).filter(id=> !currentIds.includes(id));
+  try{
+    const writeResults = await Promise.all(changed.map(f=> storageSetRaw('folderitem_'+f.id, JSON.stringify(f))));
+    if(writeResults.some(r=>r===false)) return false;
+    await Promise.all(removedIds.map(id=> storageDeleteRaw('folderitem_'+id)));
+    const idxOk = await storageSetRaw('folders', JSON.stringify(currentIds));
+    if(!idxOk) return false;
+    changed.forEach(f=> { FOLDER_PERSIST_SNAPSHOT[f.id] = JSON.stringify(f); });
+    removedIds.forEach(id=> { delete FOLDER_PERSIST_SNAPSHOT[id]; });
+    return true;
+  }catch(e){ return false; }
 }
 function cloneMetaArr(arr){ return JSON.parse(JSON.stringify(arr)); }
 async function getMeta(folderId){
@@ -1426,15 +1467,19 @@ function tagManagerHTML(folderId, tags){
   }
   return `
   <div class="sheet-title">管理標籤</div>
-  <p class="settings-desc">修改文字可以重新命名標籤；清空文字後儲存則會從所有收藏中移除該標籤。點選色塊可以幫標籤上色。</p>
-  <div id="tag-manager-list">${tags.map(t=>`
+  <p class="settings-desc">修改文字可以重新命名標籤；清空文字後儲存則會從所有收藏中移除該標籤。點左側色點可以展開選色。</p>
+  <div id="tag-manager-list">${tags.map(t=>{
+    const currentSwatch = TAG_COLOR_SWATCHES.find(c=>c.key===(TAG_COLOR_DRAFT[t]||'default'));
+    return `
     <div class="tag-manager-row" data-tag="${esc(t)}">
+      <button type="button" class="tag-color-indicator" data-act="toggle-tag-color-picker" style="background:${currentSwatch.bg};" aria-label="選擇顏色"></button>
       <input class="text-input" type="text" value="${esc(t)}" maxlength="16"/>
       <button type="button" class="tag-manager-clear" data-act="tag-manager-clear" aria-label="清空">×</button>
     </div>
     <div class="tag-color-row">
       ${TAG_COLOR_SWATCHES.map(c=>`<button type="button" class="tag-color-dot ${((TAG_COLOR_DRAFT[t]||'default')===c.key)?'active':''}" data-act="set-tag-color" data-tag="${esc(t)}" data-color="${c.key}" style="background:${c.bg};" aria-label="${c.key}"></button>`).join('')}
-    </div>`).join('')}</div>
+    </div>`;
+  }).join('')}</div>
   <div class="sheet-actions">
     <button class="btn btn-primary" data-act="save-tag-manager" data-folder="${folderId}">儲存</button>
   </div>`;
@@ -1468,7 +1513,8 @@ async function saveTagManager(folderId){
   const folder = FOLDERS.find(f=>f.id===folderId);
   if(folder){
     folder.tagColors = newTagColors;
-    await persistFolders();
+    const folderOk = await persistFolders();
+    if(!folderOk){ toast('顏色儲存失敗，請再試一次'); return; }
     CURRENT_TAG_COLORS = newTagColors;
   }
   closeModal();
@@ -2531,10 +2577,22 @@ async function onAppClick(e){
       }
       case 'delete-selected-images': await deleteSelectedImages(); break;
       case 'tag-manager-clear': { const row = el.closest('.tag-manager-row'); if(row){ const inp = row.querySelector('input'); if(inp) inp.value=''; } break; }
+      case 'toggle-tag-color-picker': {
+        const row = el.closest('.tag-manager-row');
+        const colorRow = row ? row.nextElementSibling : null;
+        if(colorRow && colorRow.classList.contains('tag-color-row')) colorRow.classList.toggle('open');
+        break;
+      }
       case 'set-tag-color': {
         TAG_COLOR_DRAFT[el.dataset.tag] = el.dataset.color;
-        const row = el.closest('.tag-color-row');
-        if(row) row.querySelectorAll('.tag-color-dot').forEach(dot=> dot.classList.toggle('active', dot===el));
+        const colorRow = el.closest('.tag-color-row');
+        if(colorRow){
+          colorRow.querySelectorAll('.tag-color-dot').forEach(dot=> dot.classList.toggle('active', dot===el));
+          const managerRow = colorRow.previousElementSibling;
+          const indicator = managerRow ? managerRow.querySelector('.tag-color-indicator') : null;
+          if(indicator) indicator.style.background = el.style.background;
+          colorRow.classList.remove('open');
+        }
         break;
       }
       case 'save-tag-manager': await saveTagManager(el.dataset.folder); break;
