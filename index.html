@@ -302,8 +302,6 @@
   .tag-row .tag-input{flex:1;}
   .btn{border:none;border-radius:var(--radius-pill);padding:12px 18px;font-size:14px;font-weight:600;}
   .btn-primary{background:var(--accent);color:#fff;width:100%;box-shadow:0 6px 16px -4px rgba(122,50,68,.4);}
-  .backup-btn-row{display:flex;gap:10px;}
-  .backup-btn-row .btn{flex:1;width:auto;text-align:center;}
   .btn-ghost-sm{background:var(--bg-deep);color:var(--ink);padding:10px 15px;}
   .btn-danger-outline{background:none;border:1px solid var(--danger);color:var(--danger);width:100%;margin-bottom:10px;}
   .sheet-actions{margin-top:22px;display:flex;flex-direction:column;gap:10px;}
@@ -567,11 +565,6 @@ function fmtDate(ts){
   const d = new Date(ts);
   return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
 }
-function fmtDateTime(ts){
-  if(!ts) return '';
-  const d = new Date(ts);
-  return fmtDate(ts)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-}
 function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
 function favoriteBadgeHTML(fav){ return fav ? `<span class="badge fav-badge">★ 收藏</span>` : ''; }
 function tagsHTML(tags, colorMap){
@@ -672,18 +665,15 @@ let FIREBASE_SDK_LOADED = false;
 function loadScriptTag(src){
   return new Promise((resolve, reject)=>{
     const s = document.createElement('script');
-    s.src = src; s.async = false;
-    s.onload = ()=>resolve(); s.onerror = ()=>reject(new Error('load failed'));
+    s.src = src; s.onload = ()=>resolve(); s.onerror = ()=>reject(new Error('load failed'));
     document.head.appendChild(s);
   });
 }
 async function ensureFirebaseSDK(){
   if(FIREBASE_SDK_LOADED) return true;
   try{
-    await Promise.all([
-      loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js'),
-      loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js')
-    ]);
+    await loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+    await loadScriptTag('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js');
     FIREBASE_SDK_LOADED = true;
     return true;
   }catch(e){ toast('雲端功能載入失敗，請檢查網路連線'); return false; }
@@ -846,20 +836,8 @@ async function setMeta(folderId, arr){
     const idxOk = await storageSetRaw('meta_'+folderId, JSON.stringify(newIds));
     if(!idxOk) return false;
     META_CACHE[folderId] = cloneMetaArr(arr);
-    updateFolderCountCache(folderId, arr);
     return true;
   }catch(e){ return false; }
-}
-function updateFolderCountCache(folderId, arr){
-  const folder = FOLDERS.find(f=>f.id===folderId);
-  if(!folder) return;
-  const articleCount = arr.filter(m=>m.type==='article').length;
-  const imageCount = arr.filter(m=>m.type==='image').length;
-  if(folder.articleCount!==articleCount || folder.imageCount!==imageCount){
-    folder.articleCount = articleCount;
-    folder.imageCount = imageCount;
-    persistFolders(); /* cheap: our per-folder storage only rewrites this one folder */
-  }
 }
 async function getItem(folderId, id){
   const raw = await storageGetRaw('item_'+folderId+'_'+id);
@@ -1146,29 +1124,11 @@ window.addEventListener('hashchange', (e)=> route(e));
 async function renderHome(){
   const app = document.getElementById('app');
   const counts = {};
-  const needsBackfill = [];
-  FOLDERS.forEach(f=>{
-    if(typeof f.articleCount==='number' && typeof f.imageCount==='number'){
-      counts[f.id] = { articles: f.articleCount, images: f.imageCount };
-    } else {
-      counts[f.id] = { articles: 0, images: 0 };
-      needsBackfill.push(f.id);
-    }
-  });
+  await Promise.all(FOLDERS.map(async f=>{
+    const meta = await getMeta(f.id);
+    counts[f.id] = { articles: meta.filter(m=>m.type==='article').length, images: meta.filter(m=>m.type==='image').length };
+  }));
   app.innerHTML = homeHTML(counts);
-  if(needsBackfill.length) backfillFolderCounts(needsBackfill);
-}
-async function backfillFolderCounts(folderIds){
-  for(const folderId of folderIds){
-    try{
-      const meta = await getMeta(folderId);
-      updateFolderCountCache(folderId, meta);
-      const folder = FOLDERS.find(f=>f.id===folderId);
-      if(!folder) continue;
-      const countEl = document.querySelector('[data-folder-count="'+folderId+'"]');
-      if(countEl) countEl.textContent = ((folder.articleCount||0)+(folder.imageCount||0))+' 筆收藏';
-    }catch(e){ /* best-effort; will just retry on next home load */ }
-  }
 }
 function sortFoldersForHome(folders){
   const arr = folders.slice();
@@ -1191,7 +1151,7 @@ function bookCardHTML(f, count, i){
     <div class="book-card-text">
       <div class="book-card-name">${esc(f.name)}</div>
       ${f.description? `<div class="book-card-desc">${esc(f.description)}</div>` : ''}
-      <div class="book-card-count" data-folder-count="${f.id}">${total} 筆收藏</div>
+      <div class="book-card-count">${total} 筆收藏</div>
     </div>
   </div>`;
 }
@@ -1335,6 +1295,7 @@ async function renderItem(folderId, id){
       content = legacy ? (legacy.content||'') : '';
     }
     app.innerHTML = articleReadHTML(folder, m, content);
+    initChapterSwipeGesture();
     const histEntry = READING_HISTORY.find(x=>x.articleId===id);
     requestAnimationFrame(()=>{
       if(histEntry && histEntry.progress>0){
@@ -1396,16 +1357,14 @@ function articleReadHTML(folder, m, content){
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
     <div class="topbar-mini">${folderIconHTML(folder.icon)} ${esc(folder.name)}</div>
-    <div class="topbar-actions">
-      ${parsed.chapters.length ? `<button class="icon-btn" data-act="open-toc" aria-label="目錄">📑</button>` : ''}
-      <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
-    </div>
+    <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
   </div>
   <div class="reading-page">
     <h1 class="reading-title">${esc(m.title||'未命名文章')}</h1>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
     <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
     <div class="reading-content">${parsed.html}</div>
+    ${parsed.chapters.length ? `<div class="toc-hint">↔ 左右滑動查看目錄</div>` : ''}
   </div>`;
 }
 function tocHTML(){
@@ -1416,6 +1375,17 @@ function tocHTML(){
 function openChapterTOC(){
   if(!CURRENT_ARTICLE_CHAPTERS.length) return;
   showModal(tocHTML());
+}
+function initChapterSwipeGesture(){
+  const page = document.querySelector('.reading-page');
+  if(!page) return;
+  let sx = 0, sy = 0;
+  page.addEventListener('touchstart', e=>{ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  page.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5) openChapterTOC();
+  }, {passive:true});
 }
 function imageViewHTML(folder, m, item){
   const media = normalizeMedia(item);
@@ -1906,18 +1876,8 @@ async function renderSettings(){
   const app = document.getElementById('app');
   app.innerHTML = `<div class="modal-loading">載入中…</div>`;
   let totalItems = 0;
-  const needsBackfill = [];
-  for(const f of FOLDERS){
-    if(typeof f.articleCount==='number' && typeof f.imageCount==='number'){
-      totalItems += f.articleCount + f.imageCount;
-    } else {
-      needsBackfill.push(f.id);
-    }
-  }
-  if(needsBackfill.length) backfillFolderCounts(needsBackfill);
+  for(const f of FOLDERS){ const meta = await getMeta(f.id); totalItems += meta.length; }
   const iconPreviewUrl = await generateAppIcon(APP_ICON, currentAccentColor());
-  const lastBackupRaw = await storageGetRaw('lastBackupAt');
-  const lastBackupAt = lastBackupRaw ? Number(lastBackupRaw) : null;
   app.innerHTML = `
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
@@ -1933,15 +1893,10 @@ async function renderSettings(){
     ${homeSortSectionHTML()}
     ${defaultLandingSectionHTML()}
     ${readingPrefsSectionHTML()}
-    <div class="settings-section-title">資料備份</div>
+    <div class="settings-section-title">備份</div>
     <div class="settings-card">
-      <p class="settings-desc">將所有資料夾與收藏匯出成一個 JSON 檔案，存放在你自己的裝置或雲端硬碟中；需要的時候可以匯入還原。</p>
-      <div class="backup-btn-row">
-        <button class="btn btn-primary" data-act="export-backup">⬇️ 匯出備份</button>
-        <label class="btn btn-ghost-sm" for="import-backup-file-input">⬆️ 匯入備份</label>
-      </div>
-      <input id="import-backup-file-input" type="file" accept="application/json,.json" style="display:none"/>
-      <p class="settings-desc" style="margin:12px 0 0;">${lastBackupAt ? ('最近備份時間：'+fmtDateTime(lastBackupAt)) : '還沒有備份紀錄。'}</p>
+      <p class="settings-desc">將所有資料夾與收藏匯出成一個 JSON 檔案，存放在你自己的裝置或雲端硬碟中，之後可用來復原資料。</p>
+      <button class="btn btn-primary" data-act="export-backup">匯出備份</button>
     </div>
     ${cloudSyncSectionHTML()}
   </div>`;
@@ -1999,40 +1954,7 @@ async function exportBackup(){
   a.href = url; a.download = APP_NAME + '備份_' + new Date().toISOString().slice(0,10) + '.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  await storageSetRaw('lastBackupAt', String(Date.now()));
   toast('備份已下載');
-  await renderSettings();
-}
-async function importBackupFile(file){
-  if(!confirm('匯入備份會覆蓋這台裝置上目前所有的資料夾與收藏，確定要繼續嗎？此動作無法復原，建議先匯出目前的備份再繼續。')) return;
-  toast('匯入中，請稍候…');
-  let data;
-  try{
-    const text = await file.text();
-    data = JSON.parse(text);
-  }catch(e){ toast('匯入失敗，請確認選的是備份 JSON 檔案'); return; }
-  if(!data || !Array.isArray(data.folders)){ toast('備份檔格式不正確'); return; }
-  try{
-    FOLDERS = data.folders;
-    FOLDER_PERSIST_SNAPSHOT = {};
-    const foldersOk = await persistFolders();
-    if(!foldersOk){ toast('匯入失敗（資料夾儲存失敗），請再試一次'); return; }
-    const metas = data.metas || {};
-    for(const folderId of Object.keys(metas)){
-      delete META_CACHE[folderId];
-      await setMeta(folderId, metas[folderId] || []);
-    }
-    const items = data.items || {};
-    for(const key of Object.keys(items)){
-      const idx = key.indexOf('_');
-      if(idx<0) continue;
-      const folderId = key.slice(0, idx);
-      const itemId = key.slice(idx+1);
-      if(items[key]) await setItem(folderId, itemId, items[key]);
-    }
-    toast('匯入完成，重新整理中…');
-    setTimeout(()=> location.reload(), 800);
-  }catch(e){ toast('匯入過程發生錯誤，請再試一次'); }
 }
 
 /* ---------- Modal shell ---------- */
@@ -2870,7 +2792,6 @@ async function onAppClick(e){
         if(title && title.trim()) insertChapterTokenAtCursor(title.trim());
         break;
       }
-      case 'open-toc': openChapterTOC(); break;
       case 'jump-to-chapter': {
         const chapterId = el.dataset.chapter;
         closeModal();
@@ -2985,12 +2906,6 @@ async function onAppChange(e){
     const files = e.target.files;
     e.target.value = '';
     await handleBulkImportFiles(files, folderId);
-  }
-  if(e.target && e.target.id==='import-backup-file-input'){
-    const file = e.target.files && e.target.files[0];
-    e.target.value = '';
-    if(!file) return;
-    await importBackupFile(file);
   }
   if(e.target && e.target.id==='folder-cover-file-input'){
     const file = e.target.files && e.target.files[0];
