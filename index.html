@@ -1079,12 +1079,23 @@ function renderBottomNav(show, active){
   if(!show){ el.innerHTML = ''; return; }
   el.innerHTML = bottomNavHTML(active);
 }
-async function route(){
+async function route(e){
   await flushReadingProgress();
+  const overlayRoot = document.getElementById('overlay-root');
+  if(overlayRoot) overlayRoot.innerHTML = '';
+  document.body.classList.remove('modal-open');
   const parts = parseHash();
+  let scrollToItemId = null;
+  if(e && e.oldURL){
+    const oldHash = (e.oldURL.split('#')[1] || '').replace(/^\//, '');
+    const oldParts = oldHash.split('/').filter(Boolean);
+    if(oldParts[0]==='item' && oldParts[1] && oldParts[2] && oldParts[1]===parts[1]){
+      scrollToItemId = oldParts[2];
+    }
+  }
   let showNav = true, active = null;
   if(parts[0]==='folder' && parts[1]){
-    await renderFolder(parts[1], parts[2]||'articles');
+    await renderFolder(parts[1], parts[2]||'articles', scrollToItemId);
   } else if(parts[0]==='item' && parts[1] && parts[2]){
     await renderItem(parts[1], parts[2]);
     showNav = false;
@@ -1105,9 +1116,9 @@ async function route(){
     active = 'home';
   }
   renderBottomNav(showNav, active);
-  window.scrollTo(0,0);
+  if(!scrollToItemId) window.scrollTo(0,0);
 }
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', (e)=> route(e));
 
 /* ---------- Home ---------- */
 async function renderHome(){
@@ -1241,7 +1252,7 @@ function folderPageHTML(folder, tab, meta){
   ${bottomAction}
   `;
 }
-async function renderFolder(folderId, tab){
+async function renderFolder(folderId, tab, scrollToItemId){
   const folder = FOLDERS.find(f=>f.id===folderId);
   if(!folder){ location.hash='#/'; return; }
   CURRENT_TAG_COLORS = folder.tagColors || {};
@@ -1259,6 +1270,13 @@ async function renderFolder(folderId, tab){
   FOLDER_VIEW_CTX = { folder, tab, meta };
   const app = document.getElementById('app');
   app.innerHTML = folderPageHTML(folder, tab, meta);
+  if(scrollToItemId){
+    requestAnimationFrame(()=>{
+      const target = document.querySelector('[data-id="'+scrollToItemId+'"]');
+      if(target) target.scrollIntoView({ block:'center' });
+      else window.scrollTo(0,0);
+    });
+  }
 }
 
 /* ---------- Item detail ---------- */
@@ -1515,7 +1533,8 @@ function navigateToSiblingImage(dir){
   const nextIndex = (GALLERY_INDEX + dir + GALLERY_SIBLINGS.length) % GALLERY_SIBLINGS.length;
   const nextId = GALLERY_SIBLINGS[nextIndex];
   if(!nextId) return;
-  location.hash = '#/item/'+GALLERY_FOLDER_ID+'/'+nextId;
+  history.replaceState(null, '', '#/item/'+GALLERY_FOLDER_ID+'/'+nextId);
+  route();
 }
 function lightboxNav(dir){
   LIGHTBOX_IDX = (LIGHTBOX_IDX + dir + LIGHTBOX_IMAGES.length) % LIGHTBOX_IMAGES.length;
