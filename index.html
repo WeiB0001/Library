@@ -333,6 +333,9 @@
   .tag-manager-row:first-of-type{border-top:none;}
   .tag-manager-row input{flex:1;}
   .tag-manager-clear{width:30px;height:30px;border-radius:50%;border:none;background:var(--bg-deep);color:var(--danger);font-size:14px;flex:0 0 auto;}
+  .tag-color-row{display:flex;gap:8px;padding:2px 0 10px;}
+  .tag-color-dot{width:22px;height:22px;border-radius:50%;border:2px solid transparent;flex:0 0 auto;}
+  .tag-color-dot.active{border-color:var(--ink);}
 
   /* Lightbox */
   .lightbox{position:fixed;inset:0;background:rgba(8,6,3,.96);z-index:2000;display:flex;align-items:center;justify-content:center;}
@@ -464,6 +467,22 @@ let COVER_POSITION_DRAFT = { x:50, y:50 };
 let EDITING = null;
 let PROCESSING = false;
 let LIGHTBOX_IMAGES = [];
+let GALLERY_SIBLINGS = [];
+let GALLERY_INDEX = -1;
+let GALLERY_FOLDER_ID = null;
+let CURRENT_TAG_COLORS = {};
+let TAG_COLOR_DRAFT = {};
+const TAG_COLOR_SWATCHES = [
+  { key:'default', bg:'#DFE4D2', fg:'#4C5A40' },
+  { key:'red',     bg:'#F6D9D5', fg:'#9B4237' },
+  { key:'orange',  bg:'#F5E1C4', fg:'#95601C' },
+  { key:'yellow',  bg:'#F5E9B8', fg:'#8C7414' },
+  { key:'green',   bg:'#DCEAD7', fg:'#3F6B41' },
+  { key:'teal',    bg:'#D3E8E4', fg:'#2C6F63' },
+  { key:'blue',    bg:'#D6E1F0', fg:'#31548F' },
+  { key:'purple',  bg:'#E4DAF0', fg:'#5F3C8C' },
+  { key:'pink',    bg:'#F3D9E6', fg:'#96406B' }
+];
 let LIGHTBOX_IDX = 0;
 let APP_NAME = '藏書閣';
 let APP_ICON = '📚';
@@ -522,7 +541,14 @@ function fmtDate(ts){
 }
 function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
 function favoriteBadgeHTML(fav){ return fav ? `<span class="badge fav-badge">★ 收藏</span>` : ''; }
-function tagsHTML(tags){ return (tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join(''); }
+function tagsHTML(tags, colorMap){
+  colorMap = colorMap || CURRENT_TAG_COLORS || {};
+  return (tags||[]).map(t=>{
+    const swatch = TAG_COLOR_SWATCHES.find(c=>c.key===colorMap[t]);
+    const style = swatch ? ` style="background:${swatch.bg};color:${swatch.fg};"` : '';
+    return `<span class="tag"${style}>#${esc(t)}</span>`;
+  }).join('');
+}
 function excerptOf(m){
   let text = (m.content!==undefined? m.content : (m.excerpt||'')) || '';
   text = text.replace(/\[\[img:[a-zA-Z0-9_]+\]\]/g, '📷');
@@ -1116,6 +1142,7 @@ function folderPageHTML(folder, tab, meta){
 async function renderFolder(folderId, tab){
   const folder = FOLDERS.find(f=>f.id===folderId);
   if(!folder){ location.hash='#/'; return; }
+  CURRENT_TAG_COLORS = folder.tagColors || {};
   if(!(CURRENT_FILTER._folderId===folderId && CURRENT_FILTER._tab===tab)){
     CURRENT_FILTER = { tags:[], favoriteOnly:false, _folderId:folderId, _tab:tab };
     SELECT_MODE = false;
@@ -1136,6 +1163,7 @@ async function renderFolder(folderId, tab){
 async function renderItem(folderId, id){
   const folder = FOLDERS.find(f=>f.id===folderId);
   if(!folder){ location.hash='#/'; return; }
+  CURRENT_TAG_COLORS = folder.tagColors || {};
   const meta = await getMeta(folderId);
   const m = meta.find(x=>x.id===id);
   if(!m){ location.hash = '#/folder/'+folderId+'/articles'; return; }
@@ -1150,6 +1178,10 @@ async function renderItem(folderId, id){
   } else {
     const item = await getItem(folderId, id);
     app.innerHTML = imageViewHTML(folder, m, item);
+    const imageItems = sortMeta(meta.filter(x=>x.type==='image'), 'newest');
+    GALLERY_SIBLINGS = imageItems.map(x=>x.id);
+    GALLERY_FOLDER_ID = folderId;
+    GALLERY_INDEX = GALLERY_SIBLINGS.indexOf(id);
     const media = normalizeMedia(item);
     if(media.length===1){
       openLightbox(0);
@@ -1321,8 +1353,18 @@ function renderLightbox(){
   lb.addEventListener('touchend', e=>{
     if(zoom.scale > 1.02) return;
     const dx = e.changedTouches[0].clientX - swipeStartX;
-    if(Math.abs(dx) > 40) lightboxNav(dx>0 ? -1 : 1);
+    if(Math.abs(dx) <= 40) return;
+    const dir = dx>0 ? -1 : 1;
+    if(LIGHTBOX_IMAGES.length > 1){ lightboxNav(dir); }
+    else { navigateToSiblingImage(dir); }
   }, {passive:true});
+}
+function navigateToSiblingImage(dir){
+  if(!GALLERY_SIBLINGS.length || GALLERY_INDEX===-1 || !GALLERY_FOLDER_ID) return;
+  const nextIndex = (GALLERY_INDEX + dir + GALLERY_SIBLINGS.length) % GALLERY_SIBLINGS.length;
+  const nextId = GALLERY_SIBLINGS[nextIndex];
+  if(!nextId) return;
+  location.hash = '#/item/'+GALLERY_FOLDER_ID+'/'+nextId;
 }
 function lightboxNav(dir){
   LIGHTBOX_IDX = (LIGHTBOX_IDX + dir + LIGHTBOX_IMAGES.length) % LIGHTBOX_IMAGES.length;
@@ -1354,13 +1396,15 @@ async function doRandomDrawGlobal(){
 }
 function randomModalHTML(pick, isGlobal){
   const isImg = pick.type==='image';
+  const pickFolder = FOLDERS.find(f=>f.id===pick.folderId);
+  const pickColors = (pickFolder && pickFolder.tagColors) || {};
   return `
   <div class="sheet-title">翻到了…</div>
   <div class="random-card">
     <div class="random-thumb">${isImg && pick.thumb ? `<img src="${pick.thumb}"/>` : '<span>📄</span>'}</div>
     <div class="random-folder">${folderIconHTML(pick.folderIcon)} ${esc(pick.folderName)}</div>
     ${isImg ? '' : `<div class="random-title">${esc(pick.title||'未命名文章')}</div>`}
-    <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags)}${favoriteBadgeHTML(pick.favorite)}</div>
+    <div class="chip-list" style="justify-content:center">${tagsHTML(pick.tags, pickColors)}${favoriteBadgeHTML(pick.favorite)}</div>
   </div>
   <div class="sheet-actions row">
     <button class="btn btn-ghost-sm" data-act="${isGlobal?'redraw-global':'redraw'}" ${isGlobal?'':`data-folder="${pick.folderId}"`}>🎲 再抽一次</button>
@@ -1372,6 +1416,8 @@ function randomModalHTML(pick, isGlobal){
 async function openTagManager(folderId){
   const meta = await getMeta(folderId);
   const tags = Array.from(new Set(meta.flatMap(m=>m.tags||[]))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  TAG_COLOR_DRAFT = Object.assign({}, (folder && folder.tagColors) || {});
   showModal(tagManagerHTML(folderId, tags));
 }
 function tagManagerHTML(folderId, tags){
@@ -1380,11 +1426,14 @@ function tagManagerHTML(folderId, tags){
   }
   return `
   <div class="sheet-title">管理標籤</div>
-  <p class="settings-desc">修改文字可以重新命名標籤；清空文字後儲存則會從所有收藏中移除該標籤。</p>
+  <p class="settings-desc">修改文字可以重新命名標籤；清空文字後儲存則會從所有收藏中移除該標籤。點選色塊可以幫標籤上色。</p>
   <div id="tag-manager-list">${tags.map(t=>`
     <div class="tag-manager-row" data-tag="${esc(t)}">
       <input class="text-input" type="text" value="${esc(t)}" maxlength="16"/>
       <button type="button" class="tag-manager-clear" data-act="tag-manager-clear" aria-label="清空">×</button>
+    </div>
+    <div class="tag-color-row">
+      ${TAG_COLOR_SWATCHES.map(c=>`<button type="button" class="tag-color-dot ${((TAG_COLOR_DRAFT[t]||'default')===c.key)?'active':''}" data-act="set-tag-color" data-tag="${esc(t)}" data-color="${c.key}" style="background:${c.bg};" aria-label="${c.key}"></button>`).join('')}
     </div>`).join('')}</div>
   <div class="sheet-actions">
     <button class="btn btn-primary" data-act="save-tag-manager" data-folder="${folderId}">儲存</button>
@@ -1408,8 +1457,20 @@ async function saveTagManager(folderId){
     });
     m.tags = newTags;
   });
+  const newTagColors = {};
+  Object.keys(renameMap).forEach(oldTag=>{
+    const newTag = renameMap[oldTag];
+    const color = TAG_COLOR_DRAFT[oldTag];
+    if(newTag && color && color!=='default'){ newTagColors[newTag] = color; }
+  });
   const ok = await setMeta(folderId, meta);
   if(!ok) return;
+  const folder = FOLDERS.find(f=>f.id===folderId);
+  if(folder){
+    folder.tagColors = newTagColors;
+    await persistFolders();
+    CURRENT_TAG_COLORS = newTagColors;
+  }
   closeModal();
   await rerenderCurrentFilterView();
   toast('標籤已更新');
@@ -1866,7 +1927,7 @@ function articleEditorHTML(folder, m, content){
     <button type="button" id="favorite-toggle-btn" class="favorite-toggle ${FAVORITE_DRAFT?'active':''}" data-act="toggle-favorite">${FAVORITE_DRAFT? '★ 已收藏':'☆ 加入收藏'}</button>
   </div>
   <div class="editor-bottom-bar">
-    <button class="btn btn-primary" data-act="save-article" data-folder="${folder.id}" data-id="${m?m.id:''}">${m? '儲存變更':'加入收藏'}</button>
+    <button class="btn btn-primary" data-act="save-article" data-folder="${folder.id}" data-id="${m?m.id:''}">${m? '儲存變更':'加入藏書'}</button>
   </div>`;
 }
 async function renderArticleEditor(folderId, existingId){
@@ -2125,7 +2186,7 @@ function imageModalHTML(folderId, meta){
    <div id="tag-chip-list" class="chip-list">${tagChipsHTML()}</div>
    <div id="tag-suggestions-wrap">${tagSuggestionsHTML()}</div>
    <div class="sheet-actions">
-     <button class="btn btn-primary" data-act="save-image-item" data-folder="${folderId}" data-id="${meta?meta.id:''}" ${PROCESSING?'disabled':''}>${meta? '儲存變更':'加入收藏'}</button>
+     <button class="btn btn-primary" data-act="save-image-item" data-folder="${folderId}" data-id="${meta?meta.id:''}" ${PROCESSING?'disabled':''}>${meta? '儲存變更':'加入藏書'}</button>
    </div>`;
 }
 function openImageModal(folderId, existingId){
@@ -2470,6 +2531,12 @@ async function onAppClick(e){
       }
       case 'delete-selected-images': await deleteSelectedImages(); break;
       case 'tag-manager-clear': { const row = el.closest('.tag-manager-row'); if(row){ const inp = row.querySelector('input'); if(inp) inp.value=''; } break; }
+      case 'set-tag-color': {
+        TAG_COLOR_DRAFT[el.dataset.tag] = el.dataset.color;
+        const row = el.closest('.tag-color-row');
+        if(row) row.querySelectorAll('.tag-color-dot').forEach(dot=> dot.classList.toggle('active', dot===el));
+        break;
+      }
       case 'save-tag-manager': await saveTagManager(el.dataset.folder); break;
       case 'toggle-text-tools': { const p = document.getElementById('text-tools-panel'); if(p) p.classList.toggle('open'); break; }
       case 'remove-embed-image': removeEmbedImage(el.dataset.id); break;
