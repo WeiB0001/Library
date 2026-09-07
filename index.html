@@ -58,13 +58,14 @@
   .book-card,.img-card,.article-card,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
   .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
   .tag-manage-btn,.add-card,.layout-option-row,.tag-color-indicator,.tag-color-dot,
-  .continue-card,.recent-read-card{
+  .continue-card,.recent-read-card,.collapsible-header{
     transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
   }
   .book-card:active,.img-card:active,.article-card:active,.chip:active,.tab-btn:active,
   .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
   .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active,.layout-option-row:active,
-  .tag-color-indicator:active,.tag-color-dot:active,.continue-card:active,.recent-read-card:active{
+  .tag-color-indicator:active,.tag-color-dot:active,.continue-card:active,.recent-read-card:active,
+  .collapsible-header:active{
     transform:scale(.96);
   }
 
@@ -302,6 +303,8 @@
   .tag-row .tag-input{flex:1;}
   .btn{border:none;border-radius:var(--radius-pill);padding:12px 18px;font-size:14px;font-weight:600;}
   .btn-primary{background:var(--accent);color:#fff;width:100%;box-shadow:0 6px 16px -4px rgba(122,50,68,.4);}
+  .backup-btn-row{display:flex;gap:10px;}
+  .backup-btn-row .btn{flex:1;width:auto;text-align:center;}
   .btn-ghost-sm{background:var(--bg-deep);color:var(--ink);padding:10px 15px;}
   .btn-danger-outline{background:none;border:1px solid var(--danger);color:var(--danger);width:100%;margin-bottom:10px;}
   .sheet-actions{margin-top:22px;display:flex;flex-direction:column;gap:10px;}
@@ -372,10 +375,17 @@
   .settings-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;}
   .settings-row+.settings-row{border-top:1px solid var(--line);}
   .settings-section-title{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin:6px 4px 9px;}
-  .collapsible-header{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:8px 4px;text-align:left;}
-  .collapse-chevron{color:var(--ink-faint);font-size:14px;transition:transform .2s ease;display:inline-block;}
+  .collapsible-header{
+    display:flex;align-items:center;justify-content:space-between;width:100%;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-card);
+    padding:16px 18px;box-shadow:var(--shadow);text-align:left;margin:4px 0 0;
+  }
+  .collapsible-header-text{display:flex;flex-direction:column;gap:3px;}
+  .collapsible-header-title{font-weight:700;font-size:15px;color:var(--ink);}
+  .collapsible-header-sub{font-size:11.5px;color:var(--ink-soft);}
+  .collapse-chevron{color:var(--accent);font-size:22px;font-weight:700;transition:transform .2s ease;display:inline-block;flex:0 0 auto;margin-left:10px;}
   .collapse-chevron.open{transform:rotate(90deg);}
-  .collapsible-content{display:none;}
+  .collapsible-content{display:none;margin-top:2px;}
   .collapsible-content.open{display:block;}
   .settings-desc{font-size:13px;color:var(--ink-soft);line-height:1.75;margin:0 0 13px;}
   .coming-soon-badge{display:inline-block;background:var(--bg-deep);color:var(--ink-soft);font-size:11.5px;padding:4px 11px;border-radius:var(--radius-pill);}
@@ -564,6 +574,11 @@ function fmtDate(ts){
   if(!ts) return '';
   const d = new Date(ts);
   return d.getFullYear()+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0');
+}
+function fmtDateTime(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  return fmtDate(ts)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
 function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
 function favoriteBadgeHTML(fav){ return fav ? `<span class="badge fav-badge">★ 收藏</span>` : ''; }
@@ -1295,7 +1310,6 @@ async function renderItem(folderId, id){
       content = legacy ? (legacy.content||'') : '';
     }
     app.innerHTML = articleReadHTML(folder, m, content);
-    initChapterSwipeGesture();
     const histEntry = READING_HISTORY.find(x=>x.articleId===id);
     requestAnimationFrame(()=>{
       if(histEntry && histEntry.progress>0){
@@ -1357,14 +1371,16 @@ function articleReadHTML(folder, m, content){
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
     <div class="topbar-mini">${folderIconHTML(folder.icon)} ${esc(folder.name)}</div>
-    <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
+    <div class="topbar-actions">
+      ${parsed.chapters.length ? `<button class="icon-btn" data-act="open-toc" aria-label="目錄">📑</button>` : ''}
+      <button class="icon-btn" data-act="item-menu" data-folder="${folder.id}" data-id="${m.id}" aria-label="更多">⋯</button>
+    </div>
   </div>
   <div class="reading-page">
     <h1 class="reading-title">${esc(m.title||'未命名文章')}</h1>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
     <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
     <div class="reading-content">${parsed.html}</div>
-    ${parsed.chapters.length ? `<div class="toc-hint">↔ 左右滑動查看目錄</div>` : ''}
   </div>`;
 }
 function tocHTML(){
@@ -1375,17 +1391,6 @@ function tocHTML(){
 function openChapterTOC(){
   if(!CURRENT_ARTICLE_CHAPTERS.length) return;
   showModal(tocHTML());
-}
-function initChapterSwipeGesture(){
-  const page = document.querySelector('.reading-page');
-  if(!page) return;
-  let sx = 0, sy = 0;
-  page.addEventListener('touchstart', e=>{ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
-  page.addEventListener('touchend', e=>{
-    const dx = e.changedTouches[0].clientX - sx;
-    const dy = e.changedTouches[0].clientY - sy;
-    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5) openChapterTOC();
-  }, {passive:true});
 }
 function imageViewHTML(folder, m, item){
   const media = normalizeMedia(item);
@@ -1762,6 +1767,7 @@ function cloudSyncSectionHTML(){
       <div class="settings-row"><span>狀態</span><strong style="color:var(--moss);">✓ 已連接</strong></div>
       <div class="settings-row"><span>同步代碼</span><strong>${esc(SYNC_KEY)}</strong></div>
       <p class="settings-desc" style="margin-top:10px;">在另一台裝置的這個網頁貼上同一組 Firebase 設定與同步代碼，就會看到一樣的收藏。圖片較多的單筆收藏（超過約 1MB）可能會同步失敗，這是雲端資料庫單筆文件的大小上限。</p>
+      <p class="settings-desc">想把雲端內容改成只存在這台裝置嗎？先用上方「⬇️ 匯出備份」把目前雲端的內容存成檔案，中斷連接後再用「⬆️ 匯入備份」讀回來，就會變成本機版本。</p>
       <button type="button" class="btn btn-ghost-sm" style="width:100%;" data-act="disconnect-cloud">中斷雲端連接</button>
     </div>`;
   }
@@ -1805,7 +1811,7 @@ async function connectCloudSync(){
   setTimeout(()=> location.reload(), 600);
 }
 async function disconnectCloudSync(){
-  if(!confirm('確定要中斷雲端同步嗎？這台裝置會改用本機儲存，本機資料不會被清空，但之後不會再跟雲端同步。')) return;
+  if(!confirm('確定要中斷雲端同步嗎？這台裝置之後會改用本機儲存，不會再跟雲端同步。\n\n如果想把雲端上的內容留下來，請先按「取消」，到上方「資料備份」匯出一份備份，之後再回來中斷連接，中斷後用「匯入備份」讀回這台裝置即可。')) return;
   await idbDelete('__firebase_config__');
   await idbDelete('__sync_key__');
   location.reload();
@@ -1862,14 +1868,16 @@ function readingPageHTML(continueItem, recentItems){
 function themeGroupHTML(iconPreviewUrl){
   return `
   <button type="button" class="collapsible-header" data-act="toggle-theme-section">
-    <span class="settings-section-title" style="margin:0;">主題</span>
-    <span class="collapse-chevron ${SETTINGS_THEME_OPEN?'open':''}">▸</span>
+    <span class="collapsible-header-text">
+      <span class="collapsible-header-title">🎨 主題</span>
+      <span class="collapsible-header-sub">顏色、版面風格、App 名稱與圖示</span>
+    </span>
+    <span class="collapse-chevron ${SETTINGS_THEME_OPEN?'open':''}">›</span>
   </button>
   <div class="collapsible-content ${SETTINGS_THEME_OPEN?'open':''}">
     ${themeSectionHTML()}
     ${layoutStyleSectionHTML()}
     ${appIdentitySectionHTML(iconPreviewUrl)}
-    ${installSectionHTML()}
   </div>`;
 }
 async function renderSettings(){
@@ -1878,6 +1886,8 @@ async function renderSettings(){
   let totalItems = 0;
   for(const f of FOLDERS){ const meta = await getMeta(f.id); totalItems += meta.length; }
   const iconPreviewUrl = await generateAppIcon(APP_ICON, currentAccentColor());
+  const lastBackupRaw = await storageGetRaw('lastBackupAt');
+  const lastBackupAt = lastBackupRaw ? Number(lastBackupRaw) : null;
   app.innerHTML = `
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
@@ -1893,12 +1903,18 @@ async function renderSettings(){
     ${homeSortSectionHTML()}
     ${defaultLandingSectionHTML()}
     ${readingPrefsSectionHTML()}
-    <div class="settings-section-title">備份</div>
+    <div class="settings-section-title">資料備份</div>
     <div class="settings-card">
-      <p class="settings-desc">將所有資料夾與收藏匯出成一個 JSON 檔案，存放在你自己的裝置或雲端硬碟中，之後可用來復原資料。</p>
-      <button class="btn btn-primary" data-act="export-backup">匯出備份</button>
+      <p class="settings-desc">將所有資料夾與收藏匯出成一個 JSON 檔案，存放在你自己的裝置或雲端硬碟中；需要的時候可以匯入還原。</p>
+      <div class="backup-btn-row">
+        <button class="btn btn-primary" data-act="export-backup">⬇️ 匯出備份</button>
+        <label class="btn btn-ghost-sm" for="import-backup-file-input">⬆️ 匯入備份</label>
+      </div>
+      <input id="import-backup-file-input" type="file" accept="application/json,.json" style="display:none"/>
+      <p class="settings-desc" style="margin:12px 0 0;">${lastBackupAt ? ('最近備份時間：'+fmtDateTime(lastBackupAt)) : '還沒有備份紀錄。'}</p>
     </div>
     ${cloudSyncSectionHTML()}
+    ${installSectionHTML()}
   </div>`;
 }
 function installSectionHTML(){
@@ -1939,22 +1955,83 @@ function layoutStyleSectionHTML(){
     </div>`;
 }
 async function exportBackup(){
-  toast('準備備份檔中…');
-  const data = { exportedAt: Date.now(), folders: FOLDERS, metas:{}, items:{} };
-  for(const f of FOLDERS){
-    const meta = await getMeta(f.id);
-    data.metas[f.id] = meta;
-    for(const m of meta){
-      if(m.type==='image'){ data.items[f.id+'_'+m.id] = await getItem(f.id, m.id); }
+  toast(FIRESTORE_DB ? '正在從雲端準備備份檔…' : '準備備份檔中…');
+  try{
+    const data = { exportedAt: Date.now(), source: FIRESTORE_DB ? 'cloud' : 'local', folders: FOLDERS, metas:{}, items:{} };
+    const metaResults = await Promise.all(FOLDERS.map(async f=>{
+      const meta = await getMeta(f.id);
+      return { folderId: f.id, meta };
+    }));
+    metaResults.forEach(r=>{ data.metas[r.folderId] = r.meta; });
+
+    const imageJobs = [];
+    metaResults.forEach(r=>{
+      r.meta.forEach(m=>{
+        if(m.type==='image') imageJobs.push({ folderId:r.folderId, itemId:m.id });
+      });
+    });
+
+    const total = imageJobs.length;
+    let done = 0, failed = 0;
+    let cursor = 0;
+    const CONCURRENCY = 8;
+    async function worker(){
+      while(cursor < imageJobs.length){
+        const job = imageJobs[cursor++];
+        try{
+          data.items[job.folderId+'_'+job.itemId] = await getItem(job.folderId, job.itemId);
+        }catch(e){ failed++; }
+        done++;
+        if(total > 15 && done % 10 === 0) toast('匯出中… ('+done+'/'+total+')');
+      }
     }
+    const workerCount = Math.max(1, Math.min(CONCURRENCY, imageJobs.length));
+    await Promise.all(Array.from({ length: workerCount }, worker));
+
+    const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = APP_NAME + '備份_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    await storageSetRaw('lastBackupAt', String(Date.now()));
+    if(failed>0) toast('備份已下載，但有 '+failed+' 張圖片讀取失敗，未包含在內');
+    else toast(FIRESTORE_DB ? '已從雲端匯出備份' : '備份已下載');
+    await renderSettings();
+  }catch(e){
+    toast('匯出失敗，請檢查網路連線後再試一次');
   }
-  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = APP_NAME + '備份_' + new Date().toISOString().slice(0,10) + '.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('備份已下載');
+}
+async function importBackupFile(file){
+  if(!confirm('匯入備份會覆蓋這台裝置上目前所有的資料夾與收藏，確定要繼續嗎？此動作無法復原，建議先匯出目前的備份再繼續。')) return;
+  toast('匯入中，請稍候…');
+  let data;
+  try{
+    const text = await file.text();
+    data = JSON.parse(text);
+  }catch(e){ toast('匯入失敗，請確認選的是備份 JSON 檔案'); return; }
+  if(!data || !Array.isArray(data.folders)){ toast('備份檔格式不正確'); return; }
+  try{
+    FOLDERS = data.folders;
+    FOLDER_PERSIST_SNAPSHOT = {};
+    const foldersOk = await persistFolders();
+    if(!foldersOk){ toast('匯入失敗（資料夾儲存失敗），請再試一次'); return; }
+    const metas = data.metas || {};
+    for(const folderId of Object.keys(metas)){
+      delete META_CACHE[folderId];
+      await setMeta(folderId, metas[folderId] || []);
+    }
+    const items = data.items || {};
+    for(const key of Object.keys(items)){
+      const idx = key.indexOf('_');
+      if(idx<0) continue;
+      const folderId = key.slice(0, idx);
+      const itemId = key.slice(idx+1);
+      if(items[key]) await setItem(folderId, itemId, items[key]);
+    }
+    toast('匯入完成，重新整理中…');
+    setTimeout(()=> location.reload(), 800);
+  }catch(e){ toast('匯入過程發生錯誤，請再試一次'); }
 }
 
 /* ---------- Modal shell ---------- */
@@ -2792,6 +2869,7 @@ async function onAppClick(e){
         if(title && title.trim()) insertChapterTokenAtCursor(title.trim());
         break;
       }
+      case 'open-toc': openChapterTOC(); break;
       case 'jump-to-chapter': {
         const chapterId = el.dataset.chapter;
         closeModal();
@@ -2906,6 +2984,12 @@ async function onAppChange(e){
     const files = e.target.files;
     e.target.value = '';
     await handleBulkImportFiles(files, folderId);
+  }
+  if(e.target && e.target.id==='import-backup-file-input'){
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    await importBackupFile(file);
   }
   if(e.target && e.target.id==='folder-cover-file-input'){
     const file = e.target.files && e.target.files[0];
