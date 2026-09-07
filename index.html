@@ -57,13 +57,14 @@
   /* Shared tactile interaction: gentle press feedback everywhere */
   .book-card,.img-card,.article-card,.chip,.tab-btn,.icon-btn,.btn,.fab,.sort-chip,
   .icon-opt,.theme-swatch,.sheet-btn,.favorite-toggle,.editor-toolbar-toggle,
-  .tag-manage-btn,.add-card,.layout-option-row,.tag-color-indicator,.tag-color-dot{
+  .tag-manage-btn,.add-card,.layout-option-row,.tag-color-indicator,.tag-color-dot,
+  .continue-card,.recent-read-card{
     transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
   }
   .book-card:active,.img-card:active,.article-card:active,.chip:active,.tab-btn:active,
   .icon-btn:active,.btn:active,.fab:active,.sort-chip:active,.icon-opt:active,
   .theme-swatch:active,.sheet-btn:active,.favorite-toggle:active,.add-card:active,.layout-option-row:active,
-  .tag-color-indicator:active,.tag-color-dot:active{
+  .tag-color-indicator:active,.tag-color-dot:active,.continue-card:active,.recent-read-card:active{
     transform:scale(.96);
   }
 
@@ -245,6 +246,8 @@
   .reading-date{font-size:12px;color:var(--ink-faint);}
   .reading-content{font-family:var(--reading-font-family, 'Noto Serif TC',serif);font-size:var(--reading-font-size, 17px);line-height:var(--reading-line-height, 2);color:var(--ink);white-space:pre-wrap;margin-top:18px;padding-bottom:20px;letter-spacing:.1px;}
   .reading-embed-img{display:block;width:100%;border-radius:var(--radius-card);margin:18px 0;box-shadow:var(--shadow);}
+  .chapter-heading{font-family:var(--heading-font, 'Noto Serif TC', serif);font-size:20px;font-weight:700;margin:34px 0 14px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink);}
+  .toc-hint{text-align:center;font-size:11px;color:var(--ink-faint);margin-top:26px;padding-bottom:10px;}
   .gallery-stack{display:flex;flex-direction:column;gap:12px;margin-top:16px;}
   .gallery-img-wrap{border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow);position:relative;}
   .gallery-img{width:100%;display:block;}
@@ -352,11 +355,28 @@
 
   /* Settings */
   .settings-page{padding-top:8px;}
+  .continue-card{background:var(--card);border-radius:var(--radius-card);padding:18px;box-shadow:var(--shadow);margin-top:4px;}
+  .continue-label{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px;}
+  .continue-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:700;font-size:18px;line-height:1.4;}
+  .continue-meta{font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+  .continue-progress-track{height:5px;background:var(--bg-deep);border-radius:3px;margin-top:14px;overflow:hidden;}
+  .continue-progress-fill{height:100%;background:var(--accent);border-radius:3px;}
+  .continue-footer{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:12px;color:var(--ink-soft);}
+  .continue-cta{color:var(--accent);font-weight:600;}
+  .recent-read-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+  .recent-read-card{background:var(--card);border-radius:var(--radius-sm);padding:12px 10px;box-shadow:var(--shadow);min-height:84px;display:flex;flex-direction:column;justify-content:space-between;}
+  .recent-read-title{font-family:var(--heading-font, 'Noto Serif TC', serif);font-weight:600;font-size:12px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+  .recent-read-folder{font-size:10px;color:var(--ink-faint);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .settings-card{background:var(--card);border-radius:var(--radius-card);padding:18px;box-shadow:var(--shadow);margin-bottom:16px;}
   .muted-card{opacity:.85;}
   .settings-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;}
   .settings-row+.settings-row{border-top:1px solid var(--line);}
   .settings-section-title{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin:6px 4px 9px;}
+  .collapsible-header{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;padding:8px 4px;text-align:left;}
+  .collapse-chevron{color:var(--ink-faint);font-size:14px;transition:transform .2s ease;display:inline-block;}
+  .collapse-chevron.open{transform:rotate(90deg);}
+  .collapsible-content{display:none;}
+  .collapsible-content.open{display:block;}
   .settings-desc{font-size:13px;color:var(--ink-soft);line-height:1.75;margin:0 0 13px;}
   .coming-soon-badge{display:inline-block;background:var(--bg-deep);color:var(--ink-soft);font-size:11.5px;padding:4px 11px;border-radius:var(--radius-pill);}
   .theme-mode-row{display:flex;gap:8px;background:var(--bg-deep);padding:4px;border-radius:var(--radius-pill);}
@@ -454,6 +474,8 @@ let FOLDER_VIEW_CTX = null;
 let SELECT_MODE = false;
 let SELECTED_IDS = new Set();
 let LAST_VIEWED_FOLDER_ID = null;
+let READING_HISTORY = [];
+let READING_TRACK = null;
 let DRAG_FOLDER_ID = null;
 let UPLOAD_QUEUE = [];
 let UPLOAD_MODE = 'group';
@@ -493,16 +515,17 @@ let DEFERRED_INSTALL_PROMPT = null;
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   DEFERRED_INSTALL_PROMPT = e;
-  if(parseHash()[0]==='theme') renderThemePage();
+  if(parseHash()[0]==='settings') renderSettings();
 });
 window.addEventListener('appinstalled', ()=>{
   DEFERRED_INSTALL_PROMPT = null;
-  if(parseHash()[0]==='theme') renderThemePage();
+  if(parseHash()[0]==='settings') renderSettings();
 });
 let HOME_SORT_MODE = 'recent';
 let DEFAULT_LANDING = 'home';
 let READING_PREFS = { fontSize:'medium', lineHeight:'normal', font:'serif', width:'normal', imageFit:'fit' };
 let LAYOUT_STYLE = 'library';
+let SETTINGS_THEME_OPEN = false;
 
 const DEFAULT_ICONS = ['📚','📖','🖼️','🎨','🌙','⭐','🌸','🍀','🕯️','💌','🎬','🍬','🌊','🗂️','🔥','🧵'];
 const THEME_BASE = {
@@ -555,6 +578,7 @@ function tagsHTML(tags, colorMap){
 function excerptOf(m){
   let text = (m.content!==undefined? m.content : (m.excerpt||'')) || '';
   text = text.replace(/\[\[img:[a-zA-Z0-9_]+\]\]/g, '📷');
+  text = text.replace(/\[\[chapter:[^\]]+\]\]/g, '');
   return text.replace(/\s+/g,' ').trim().slice(0,60);
 }
 function isImageIcon(icon){ return typeof icon==='string' && icon.indexOf('data:image')===0; }
@@ -956,6 +980,42 @@ async function createOrUpdateFolder(name, icon, description, cover, coverZoom, c
   const ok = await persistFolders();
   return ok ? folder : null;
 }
+/* ---------- Reading history (continue-reading + recently-read) ---------- */
+async function loadReadingHistory(){
+  const raw = await storageGetRaw('readingHistory');
+  try{ READING_HISTORY = raw ? JSON.parse(raw) : []; }catch(e){ READING_HISTORY = []; }
+}
+async function saveReadingHistoryEntry(folderId, articleId, progress){
+  const now = Date.now();
+  const idx = READING_HISTORY.findIndex(x=>x.articleId===articleId);
+  const entry = { folderId, articleId, lastReadAt: now, progress: Math.max(0, Math.min(100, Math.round(progress||0))) };
+  if(idx>=0) READING_HISTORY.splice(idx,1);
+  READING_HISTORY.unshift(entry);
+  READING_HISTORY.sort((a,b)=> b.lastReadAt - a.lastReadAt);
+  READING_HISTORY = READING_HISTORY.slice(0,30);
+  await storageSetRaw('readingHistory', JSON.stringify(READING_HISTORY));
+}
+function initReadingProgressTracking(folderId, id){
+  const initial = READING_HISTORY.find(x=>x.articleId===id);
+  READING_TRACK = { folderId, id, progress: (initial && initial.progress) || 0 };
+  const update = ()=>{
+    const doc = document.documentElement;
+    const scrollable = doc.scrollHeight - window.innerHeight;
+    const pct = scrollable>0 ? (window.scrollY/scrollable)*100 : 100;
+    if(READING_TRACK) READING_TRACK.progress = Math.max(READING_TRACK.progress, Math.min(100, pct));
+  };
+  READING_TRACK.handler = update;
+  window.addEventListener('scroll', update, {passive:true});
+}
+async function flushReadingProgress(){
+  if(!READING_TRACK) return;
+  const t = READING_TRACK;
+  READING_TRACK = null;
+  if(t.handler) window.removeEventListener('scroll', t.handler);
+  await saveReadingHistoryEntry(t.folderId, t.id, t.progress);
+}
+window.addEventListener('pagehide', ()=>{ flushReadingProgress(); });
+
 async function deleteFolder(id){
   const meta = await getMeta(id);
   for(const m of meta){
@@ -1004,9 +1064,9 @@ function parseHash(){
 }
 const NAV_ITEMS = [
   { key:'home', icon:'🏠', label:'首頁', act:'go-home' },
-  { key:'random', icon:'🎲', label:'隨機抽選', act:'random-draw-global' },
-  { key:'settings', icon:'⚙️', label:'設定', act:'go-settings' },
-  { key:'theme', icon:'🎨', label:'主題', act:'go-theme' }
+  { key:'reading', icon:'📖', label:'閱讀', act:'go-reading' },
+  { key:'random', icon:'🎲', label:'翻糧', act:'random-draw-global' },
+  { key:'settings', icon:'⚙️', label:'設定', act:'go-settings' }
 ];
 function bottomNavHTML(active){
   return `<nav class="bottom-nav">${NAV_ITEMS.map(it=>`<button type="button" class="nav-item ${active===it.key?'active':''}" data-act="${it.act}">
@@ -1020,6 +1080,7 @@ function renderBottomNav(show, active){
   el.innerHTML = bottomNavHTML(active);
 }
 async function route(){
+  await flushReadingProgress();
   const parts = parseHash();
   let showNav = true, active = null;
   if(parts[0]==='folder' && parts[1]){
@@ -1036,9 +1097,9 @@ async function route(){
   } else if(parts[0]==='settings'){
     await renderSettings();
     active = 'settings';
-  } else if(parts[0]==='theme'){
-    await renderThemePage();
-    active = 'theme';
+  } else if(parts[0]==='reading'){
+    await renderReadingPage();
+    active = 'reading';
   } else {
     await renderHome();
     active = 'home';
@@ -1166,7 +1227,7 @@ function folderPageHTML(folder, tab, meta){
       <span class="folder-title-text">${esc(folder.name)}</span>
       <span class="folder-title-edit">✏️</span>
     </div>
-    <button class="icon-btn" data-act="random-draw" data-folder="${folder.id}" aria-label="隨機翻糧">🎲</button>
+    <button class="icon-btn" data-act="random-draw" data-folder="${folder.id}" aria-label="翻糧">🎲</button>
   </div>
   <div class="tab-switch">
     <button class="tab-btn ${tab==='articles'?'active':''}" data-act="switch-tab" data-folder="${folder.id}" data-tab="articles">文章 <span class="tab-count">${articleCount}</span></button>
@@ -1216,6 +1277,18 @@ async function renderItem(folderId, id){
       content = legacy ? (legacy.content||'') : '';
     }
     app.innerHTML = articleReadHTML(folder, m, content);
+    initChapterSwipeGesture();
+    const histEntry = READING_HISTORY.find(x=>x.articleId===id);
+    requestAnimationFrame(()=>{
+      if(histEntry && histEntry.progress>0){
+        const doc = document.documentElement;
+        const scrollable = doc.scrollHeight - window.innerHeight;
+        window.scrollTo(0, Math.max(0, scrollable * (histEntry.progress/100)));
+      } else {
+        window.scrollTo(0,0);
+      }
+    });
+    initReadingProgressTracking(folderId, id);
   } else {
     const item = await getItem(folderId, id);
     app.innerHTML = imageViewHTML(folder, m, item);
@@ -1230,22 +1303,38 @@ async function renderItem(folderId, id){
   }
 }
 const EMBED_TOKEN_RE = /\[\[img:([a-zA-Z0-9]+)\]\]/g;
-function renderArticleBody(content, embeddedImages){
+const ARTICLE_TOKEN_RE = /\[\[(img|chapter):([^\]]+)\]\]/g;
+let CURRENT_ARTICLE_CHAPTERS = [];
+function parseArticleTokens(content, embeddedImages){
   embeddedImages = embeddedImages || {};
-  const re = new RegExp(EMBED_TOKEN_RE.source, 'g');
-  let lastIndex = 0, out = '', match;
+  const re = new RegExp(ARTICLE_TOKEN_RE.source, 'g');
+  let lastIndex = 0, html = '', match, chapterIndex = 0;
+  const chapters = [];
   while((match = re.exec(content)) !== null){
     const before = content.slice(lastIndex, match.index);
-    if(before.trim()) out += `<span class="reading-text-block">${esc(before)}</span>`;
-    const src = embeddedImages[match[1]];
-    if(src) out += `<img class="reading-embed-img" src="${src}" loading="lazy"/>`;
+    if(before.trim()) html += `<span class="reading-text-block">${esc(before)}</span>`;
+    if(match[1]==='img'){
+      const src = embeddedImages[match[2]];
+      if(src) html += `<img class="reading-embed-img" src="${src}" loading="lazy"/>`;
+    } else if(match[1]==='chapter'){
+      const title = match[2];
+      const chapId = 'chapter-'+chapterIndex;
+      chapters.push({ id:chapId, title });
+      html += `<h2 class="chapter-heading" id="${chapId}">${esc(title)}</h2>`;
+      chapterIndex++;
+    }
     lastIndex = re.lastIndex;
   }
   const rest = content.slice(lastIndex);
-  if(rest) out += `<span class="reading-text-block">${esc(rest)}</span>`;
-  return out;
+  if(rest) html += `<span class="reading-text-block">${esc(rest)}</span>`;
+  return { html, chapters };
+}
+function renderArticleBody(content, embeddedImages){
+  return parseArticleTokens(content, embeddedImages).html;
 }
 function articleReadHTML(folder, m, content){
+  const parsed = parseArticleTokens(content, m.embeddedImages);
+  CURRENT_ARTICLE_CHAPTERS = parsed.chapters;
   return `
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
@@ -1256,8 +1345,29 @@ function articleReadHTML(folder, m, content){
     <h1 class="reading-title">${esc(m.title||'未命名文章')}</h1>
     <div class="chip-list">${tagsHTML(m.tags)}</div>
     <div class="reading-meta">${favoriteBadgeHTML(m.favorite)}<span class="reading-date">${fmtDate(m.updatedAt||m.createdAt)}</span></div>
-    <div class="reading-content">${renderArticleBody(content, m.embeddedImages)}</div>
+    <div class="reading-content">${parsed.html}</div>
+    ${parsed.chapters.length ? `<div class="toc-hint">↔ 左右滑動查看目錄</div>` : ''}
   </div>`;
+}
+function tocHTML(){
+  if(!CURRENT_ARTICLE_CHAPTERS.length) return `<div class="sheet-title">目錄</div><p class="settings-desc">這篇文章還沒有章節標籤。</p>`;
+  return `<div class="sheet-title">目錄</div>
+  <div id="toc-list">${CURRENT_ARTICLE_CHAPTERS.map((c,i)=>`<button type="button" class="sheet-btn" data-act="jump-to-chapter" data-chapter="${c.id}">${i+1}. ${esc(c.title)}</button>`).join('')}</div>`;
+}
+function openChapterTOC(){
+  if(!CURRENT_ARTICLE_CHAPTERS.length) return;
+  showModal(tocHTML());
+}
+function initChapterSwipeGesture(){
+  const page = document.querySelector('.reading-page');
+  if(!page) return;
+  let sx = 0, sy = 0;
+  page.addEventListener('touchstart', e=>{ sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:true});
+  page.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5) openChapterTOC();
+  }, {passive:true});
 }
 function imageViewHTML(folder, m, item){
   const media = normalizeMedia(item);
@@ -1681,11 +1791,74 @@ async function disconnectCloudSync(){
   await idbDelete('__sync_key__');
   location.reload();
 }
+/* ---------- Reading page (continue-reading + recently-read) ---------- */
+async function renderReadingPage(){
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="modal-loading">載入中…</div>`;
+  const relevant = READING_HISTORY.slice(0, 10);
+  const folderMetaCache = {};
+  const resolved = [];
+  for(const entry of relevant){
+    const folder = FOLDERS.find(f=>f.id===entry.folderId);
+    if(!folder) continue;
+    if(!folderMetaCache[entry.folderId]) folderMetaCache[entry.folderId] = await getMeta(entry.folderId);
+    const meta = folderMetaCache[entry.folderId];
+    const article = meta.find(m=>m.id===entry.articleId && m.type==='article');
+    if(!article) continue;
+    resolved.push({ entry, folder, article });
+  }
+  const continueItem = resolved[0] || null;
+  const recentItems = resolved.slice(1, 10);
+  app.innerHTML = readingPageHTML(continueItem, recentItems);
+}
+function continueReadingCardHTML(ci){
+  const { entry, folder, article } = ci;
+  return `<div class="continue-card" data-act="open-item" data-folder="${folder.id}" data-id="${article.id}">
+    <div class="continue-label">繼續閱讀</div>
+    <div class="continue-title">${esc(article.title||'未命名文章')}</div>
+    <div class="continue-meta">${folderIconHTML(folder.icon)} ${esc(folder.name)} · ${fmtDate(entry.lastReadAt)}</div>
+    <div class="continue-progress-track"><div class="continue-progress-fill" style="width:${entry.progress}%"></div></div>
+    <div class="continue-footer"><span>${entry.progress}% 已閱讀</span><span class="continue-cta">繼續閱讀 →</span></div>
+  </div>`;
+}
+function recentReadCardHTML(ri){
+  const { folder, article } = ri;
+  return `<div class="recent-read-card" data-act="open-item" data-folder="${folder.id}" data-id="${article.id}">
+    <div class="recent-read-title">${esc(article.title||'未命名文章')}</div>
+    <div class="recent-read-folder">${folderIconHTML(folder.icon)} ${esc(folder.name)}</div>
+  </div>`;
+}
+function readingPageHTML(continueItem, recentItems){
+  return `
+  <div class="topbar">
+    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
+    <div class="topbar-mini">閱讀</div>
+    <span style="width:38px"></span>
+  </div>
+  <div class="page-content">
+    ${continueItem ? continueReadingCardHTML(continueItem) : emptyStateHTML('還沒有閱讀紀錄','開始閱讀一篇文章，這裡就會出現「繼續閱讀」')}
+    ${recentItems.length ? `<div class="settings-section-title" style="margin-top:22px;">最近閱讀</div><div class="recent-read-grid">${recentItems.map(recentReadCardHTML).join('')}</div>` : ''}
+  </div>`;
+}
+function themeGroupHTML(iconPreviewUrl){
+  return `
+  <button type="button" class="collapsible-header" data-act="toggle-theme-section">
+    <span class="settings-section-title" style="margin:0;">主題</span>
+    <span class="collapse-chevron ${SETTINGS_THEME_OPEN?'open':''}">▸</span>
+  </button>
+  <div class="collapsible-content ${SETTINGS_THEME_OPEN?'open':''}">
+    ${themeSectionHTML()}
+    ${layoutStyleSectionHTML()}
+    ${appIdentitySectionHTML(iconPreviewUrl)}
+    ${installSectionHTML()}
+  </div>`;
+}
 async function renderSettings(){
   const app = document.getElementById('app');
   app.innerHTML = `<div class="modal-loading">載入中…</div>`;
   let totalItems = 0;
   for(const f of FOLDERS){ const meta = await getMeta(f.id); totalItems += meta.length; }
+  const iconPreviewUrl = await generateAppIcon(APP_ICON, currentAccentColor());
   app.innerHTML = `
   <div class="topbar">
     <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
@@ -1697,6 +1870,7 @@ async function renderSettings(){
       <div class="settings-row"><span>資料夾數量</span><strong>${FOLDERS.length}</strong></div>
       <div class="settings-row"><span>收藏總數</span><strong>${totalItems}</strong></div>
     </div>
+    ${themeGroupHTML(iconPreviewUrl)}
     ${homeSortSectionHTML()}
     ${defaultLandingSectionHTML()}
     ${readingPrefsSectionHTML()}
@@ -1744,23 +1918,6 @@ function layoutStyleSectionHTML(){
         </button>
       `).join('')}
     </div>`;
-}
-async function renderThemePage(){
-  const app = document.getElementById('app');
-  app.innerHTML = `<div class="modal-loading">載入中…</div>`;
-  const iconPreviewUrl = await generateAppIcon(APP_ICON, currentAccentColor());
-  app.innerHTML = `
-  <div class="topbar">
-    <button class="icon-btn" data-act="go-back" aria-label="返回">‹</button>
-    <div class="topbar-mini">主題</div>
-    <span style="width:38px"></span>
-  </div>
-  <div class="page-content settings-page">
-    ${themeSectionHTML()}
-    ${layoutStyleSectionHTML()}
-    ${appIdentitySectionHTML(iconPreviewUrl)}
-    ${installSectionHTML()}
-  </div>`;
 }
 async function exportBackup(){
   toast('準備備份檔中…');
@@ -1950,6 +2107,7 @@ function articleEditorHTML(folder, m, content){
     <div class="editor-toolbar-row">
       <button type="button" class="editor-toolbar-toggle" data-act="toggle-text-tools">🔧 文字工具</button>
       <label class="editor-toolbar-toggle" for="embed-image-file-input">🖼️ 插入圖片</label>
+      <button type="button" class="editor-toolbar-toggle" data-act="insert-chapter">📑 插入章節</button>
     </div>
     <input id="embed-image-file-input" type="file" accept="image/*" multiple style="display:none"/>
     <div id="embed-images-strip">${embedStripHTML()}</div>
@@ -2020,6 +2178,18 @@ function insertImageTokenAtCursor(id){
   const ta = document.getElementById('article-content-input');
   if(!ta) return;
   const token = '\n[[img:'+id+']]\n';
+  const start = (ta.selectionStart!=null) ? ta.selectionStart : ta.value.length;
+  const end = (ta.selectionEnd!=null) ? ta.selectionEnd : ta.value.length;
+  ta.value = ta.value.slice(0,start) + token + ta.value.slice(end);
+  const newPos = start + token.length;
+  ta.focus(); ta.setSelectionRange(newPos, newPos);
+  updateEditorWordCount();
+}
+function insertChapterTokenAtCursor(title){
+  const ta = document.getElementById('article-content-input');
+  if(!ta) return;
+  const safeTitle = title.replace(/\]\]/g, '');
+  const token = '\n[[chapter:'+safeTitle+']]\n';
   const start = (ta.selectionStart!=null) ? ta.selectionStart : ta.value.length;
   const end = (ta.selectionEnd!=null) ? ta.selectionEnd : ta.value.length;
   ta.value = ta.value.slice(0,start) + token + ta.value.slice(end);
@@ -2497,7 +2667,8 @@ async function onAppClick(e){
     switch(act){
       case 'go-home': location.hash = '#/'; break;
       case 'go-new-folder': location.hash = '#/folder-editor/new'; break;
-      case 'go-theme': location.hash = '#/theme'; break;
+      case 'go-theme': location.hash = '#/settings'; break;
+      case 'go-reading': location.hash = '#/reading'; break;
       case 'open-folder': location.hash = '#/folder/'+el.dataset.id+'/'+(el.dataset.tab||'articles'); break;
       case 'edit-folder': location.hash = '#/folder-editor/'+el.dataset.id; break;
       case 'switch-tab': location.hash = '#/folder/'+el.dataset.folder+'/'+el.dataset.tab; break;
@@ -2597,30 +2768,47 @@ async function onAppClick(e){
       }
       case 'save-tag-manager': await saveTagManager(el.dataset.folder); break;
       case 'toggle-text-tools': { const p = document.getElementById('text-tools-panel'); if(p) p.classList.toggle('open'); break; }
+      case 'insert-chapter': {
+        const title = window.prompt('輸入章節標題');
+        if(title && title.trim()) insertChapterTokenAtCursor(title.trim());
+        break;
+      }
+      case 'jump-to-chapter': {
+        const chapterId = el.dataset.chapter;
+        closeModal();
+        setTimeout(()=>{
+          const target = document.getElementById(chapterId);
+          if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+        }, 60);
+        break;
+      }
       case 'remove-embed-image': removeEmbedImage(el.dataset.id); break;
       case 'find-next': findNextInEditor(); break;
       case 'replace-one': replaceOneInEditor(); break;
       case 'replace-all': replaceAllInEditor(); break;
-      case 'set-theme-mode': applyTheme(el.dataset.mode, THEME_STATE.palette); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
-      case 'set-theme-palette': applyTheme(THEME_STATE.mode, Number(el.dataset.idx)); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
-      case 'set-layout-style': applyLayoutStyle(el.dataset.layout); await saveSettings(); await renderThemePage(); break;
-      case 'set-app-icon': APP_ICON = el.dataset.icon; await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); await renderThemePage(); break;
+      case 'set-theme-mode': applyTheme(el.dataset.mode, THEME_STATE.palette); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); SETTINGS_THEME_OPEN=true; await renderSettings(); break;
+      case 'set-theme-palette': applyTheme(THEME_STATE.mode, Number(el.dataset.idx)); await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); SETTINGS_THEME_OPEN=true; await renderSettings(); break;
+      case 'set-layout-style': applyLayoutStyle(el.dataset.layout); await saveSettings(); SETTINGS_THEME_OPEN=true; await renderSettings(); break;
+      case 'set-app-icon': APP_ICON = el.dataset.icon; await applyAppIdentity(APP_NAME, APP_ICON); await saveSettings(); SETTINGS_THEME_OPEN=true; await renderSettings(); break;
       case 'save-app-name': {
         const inp = document.getElementById('app-name-input');
         APP_NAME = (inp ? inp.value.trim() : '') || '藏書閣';
         await applyAppIdentity(APP_NAME, APP_ICON);
         await saveSettings();
-        await renderThemePage();
+        SETTINGS_THEME_OPEN = true;
+        await renderSettings();
         toast('已更新');
         break;
       }
       case 'set-home-sort': HOME_SORT_MODE = el.dataset.value; await saveSettings(); await renderSettings(); break;
+      case 'toggle-theme-section': SETTINGS_THEME_OPEN = !SETTINGS_THEME_OPEN; await renderSettings(); break;
       case 'install-app': {
         if(DEFERRED_INSTALL_PROMPT){
           DEFERRED_INSTALL_PROMPT.prompt();
           try{ await DEFERRED_INSTALL_PROMPT.userChoice; }catch(err){}
           DEFERRED_INSTALL_PROMPT = null;
-          await renderThemePage();
+          SETTINGS_THEME_OPEN = true;
+          await renderSettings();
         }
         break;
       }
@@ -2762,6 +2950,7 @@ async function init(){
   await loadCloudCredentials();
   await loadSettings();
   await loadFolders();
+  await loadReadingHistory();
   if(parseHash().length===0 && DEFAULT_LANDING && DEFAULT_LANDING!=='home'){
     const f = FOLDERS.find(x=>x.id===DEFAULT_LANDING);
     if(f){ location.hash = '#/folder/'+f.id+'/articles'; return; }
